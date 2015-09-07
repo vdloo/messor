@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 from messor.log import setup_logging
-from messor.formicary import main
+from messor.formicary import setup_formicary
 
-setup_logging()
+def main():
+    setup_logging()
+    setup_formicary()
 
 main()
-
-
