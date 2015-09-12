@@ -1,10 +1,9 @@
 import logging
 import os 
 from messor.utils import ensure_directories
+from messor.settings import FORMICARY_PATH
 
 logger = logging.getLogger(__name__)
-
-FORMICARY_PATH = '~/messor'
 
 def compose_formicary_path(path):
     relative_path = os.path.join(FORMICARY_PATH, path)
