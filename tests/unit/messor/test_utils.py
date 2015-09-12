@@ -3,6 +3,23 @@ from mock import call, patch
 
 from messor.utils import ensure_directory, ensure_directories
 
+#class TestCalculateChecksum(TestCase):
+#    def test_calculate_checksum_instantiates_hasher(self, hlib, *_):
+#        pass
+#
+#    def test_calculate_checksum_opens_path(self, *_):
+#        pass
+#
+#    def test_calculate_checksum_reads_bytes_until_empty(self, *_):
+#        pass
+#
+#    def test_calculate_checksum_updates_hasher_until_empty(self, *_):
+#	pass
+#
+#    def test_calculate_checksum_returns_hexdigest(self, *_):
+#        pass
+#
+
 @patch('messor.utils.os.makedirs')
 @patch('messor.utils.os.path.exists')
 class TestEnsureDirectory(TestCase):

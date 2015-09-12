@@ -9,7 +9,7 @@ class TestEnsureFormicaryPath(TestCase):
         compose_formicary_path('test')
 	path.join.assert_called_once_with(FORMICARY_PATH, 'test')
 
-    def test_ensure_formicary_path_returns_expanded_user_path(self, path):
+    def test_ensure_formicary_path_returns_joined_path(self, path):
         ret = compose_formicary_path('test')
-	path.expanduser.assert_called_once_with(path.join.return_value)
-	self.assertEqual(path.expanduser.return_value, ret)
+
+	self.assertEqual(path.join.return_value, ret)

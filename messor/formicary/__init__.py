@@ -6,8 +6,7 @@ from messor.settings import FORMICARY_PATH
 logger = logging.getLogger(__name__)
 
 def compose_formicary_path(path):
-    relative_path = os.path.join(FORMICARY_PATH, path)
-    return os.path.expanduser(relative_path)
+    return os.path.join(FORMICARY_PATH, path)
 
 def ensure_formicary_directories(required_directories):
     formicary_directories = map(compose_formicary_path, required_directories)

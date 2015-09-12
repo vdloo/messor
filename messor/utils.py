@@ -2,13 +2,6 @@ import os
 import hashlib
 from operator import itemgetter
 
-def ensure_directory(directory):
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-def ensure_directories(required_directories):
-    return map(ensure_directory, required_directories)
-
 def flatten_list(list_to_flatten):
     return reduce(list.__add__, list_to_flatten, [])
 
@@ -31,3 +24,11 @@ def calculate_checksum(path):
 	filehash.update(buf)
         buf = fd.read(4096)
     return filehash.hexdigest()
+
+def ensure_directory(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+def ensure_directories(required_directories):
+    return map(ensure_directory, required_directories)
+
