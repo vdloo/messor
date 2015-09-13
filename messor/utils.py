@@ -13,17 +13,17 @@ def list_all_files(directory):
     return flatten_list(map(stitch_directory_and_files, os.walk(directory)))
 
 def list_directories(directory):
-	filter_directories = lambda host: os.path.isdir(os.path.abspath(host))
-	return filter(filter_directories, os.listdir(directory))
+    filter_directories = lambda dr: os.path.isdir(os.path.abspath(dr))
+    return filter(filter_directories, os.listdir(directory))
 
 def calculate_checksum(path):
     filehash = hashlib.md5() 
-    fd = open(path, 'rb')
-    buf = fd.read(4096)
-    while len(buf) > 0:
-	filehash.update(buf)
-        buf = fd.read(4096)
-    return filehash.hexdigest()
+    with open(path, 'rb') as f:
+        buf = f.read(4096)
+        while len(buf) > 0:
+    	    filehash.update(buf)
+            buf = f.read(4096)
+        return filehash.hexdigest()
 
 def ensure_directory(directory):
     if not os.path.exists(directory):
