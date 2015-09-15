@@ -1,9 +1,9 @@
 from unittest import TestCase
 from mock import patch, call
 
-from messor.settings import FORMICARY_PATH
+from messor.settings import FORMICARY_PATH, FORAGER_BUFFER
 from messor.forager.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
-    list_all_files_for_host, build_file_index, process_file
+    list_all_files_for_host, build_file_index, process_file, create_host_buffer
 
 @patch('messor.forager.pick_up.os')
 @patch('messor.forager.pick_up.ensure_filename_reference')
@@ -51,7 +51,21 @@ class TestListAllFilesForHost(TestCase):
 	laf.assert_called_once_with(FORMICARY_PATH + '/outbox/' + 'testhost')
 	self.assertEqual(laf.return_value, ret)
 
+@patch('messor.forager.pick_up.ensure_directory')
+@patch('messor.forager.pick_up.os')
+class TestCreateHostBuffer(TestCase):
+    def test_create_host_buffer_joins_host_to_buffer_path(self, os, *_):
+        create_host_buffer('testhost')
+
+        os.path.join.assert_called_once_with(FORAGER_BUFFER, 'hosts', 'testhost')
+
+    def test_create_host_buffer_creates_host_buffer_directory(self, os, ensure):
+        create_host_buffer('testhost')
+
+        ensure.assert_called_once_with(os.path.join.return_value)
+
 @patch('messor.forager.pick_up.process_file')
+@patch('messor.forager.pick_up.create_host_buffer')
 @patch('messor.forager.pick_up.build_file_index')
 @patch('messor.forager.pick_up.list_all_files_for_host')
 class TestSyncToBuffer(TestCase):
@@ -65,7 +79,12 @@ class TestSyncToBuffer(TestCase):
 
 	build_fi.assert_called_once_with(laf_for_host.return_value)
 
-    def test_sync_to_buffer_processes_all_files_for_host(self, _, build_fi, pf, *args):
+    def test_sync_to_buffer_creates_buffer_directory_for_host(self, _1, _2, create_host_buffer, *args):
+        sync_to_buffer('testhost')
+
+        create_host_buffer.assert_called_once_with('testhost')
+
+    def test_sync_to_buffer_processes_all_files_for_host(self, _1, build_fi, _2, pf, *args):
 	build_fi.return_value = ['file1.txt', 'file2.txt', 'file3.txt']
 
         sync_to_buffer('testhost')
