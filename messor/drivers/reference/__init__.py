@@ -9,7 +9,7 @@ class ChecksumFilesDriver(object):
     @staticmethod
     def _reference_path_from_filename(filename):
         reference = filename.replace(FORMICARY_PATH + '/outbox/', '')
-        return os.path.join(FORAGER_BUFFER, "hosts", reference)
+        return os.path.join(FORAGER_BUFFER, 'hosts', reference)
 
     def ensure_filename_reference(self, filename, checksum):
         reference_path = self._reference_path_from_filename(filename)

@@ -1,11 +1,11 @@
 from unittest import TestCase
 from mock import patch
 
-from bin.setup_formicary import main
+from bin.formicary_setup import main
 
-@patch('bin.setup_formicary.setup_logging')
-@patch('bin.setup_formicary.setup_formicary')
-class TestSetupFormicary(TestCase):
+@patch('bin.formicary_setup.setup_logging')
+@patch('bin.formicary_setup.setup_formicary')
+class TestFormicarySetup(TestCase):
     def test_main_sets_up_logging(self, setup_formicary, setup_logging):
         main()
 
