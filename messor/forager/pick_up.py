@@ -4,13 +4,16 @@ from operator import itemgetter
 from messor.settings import FORMICARY_PATH, FORAGER_BUFFER
 from messor.utils import list_all_files, list_directories, calculate_checksum, \
     ensure_directory
-from messor.forager.pick_up.transfer import ensure_file_in_buffer
-from messor.forager.pick_up.reference import ensure_filename_reference
+from messor.drivers.transfer import FlatBufferDriver
+from messor.drivers.reference import ChecksumFilesDriver
+
+reference_driver = ChecksumFilesDriver()
+transfer_driver = FlatBufferDriver()
 
 def process_file(file_entry):
     filename, checksum = file_entry
-    ensure_file_in_buffer(filename, checksum)
-    ensure_filename_reference(filename, checksum)
+    transfer_driver.ensure_file_in_buffer(filename, checksum)
+    reference_driver.ensure_filename_reference(filename, checksum)
     os.remove(filename)
 
 def build_file_index(files):

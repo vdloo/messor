@@ -6,8 +6,8 @@ from messor.forager.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
     list_all_files_for_host, build_file_index, process_file, create_host_buffer
 
 @patch('messor.forager.pick_up.os')
-@patch('messor.forager.pick_up.ensure_filename_reference')
-@patch('messor.forager.pick_up.ensure_file_in_buffer')
+@patch('messor.forager.pick_up.ChecksumFilesDriver.ensure_filename_reference')
+@patch('messor.forager.pick_up.FlatBufferDriver.ensure_file_in_buffer')
 class TestProcessFile(TestCase):
     file_entry = ('/some/absolute/file/path.txt', 'achecksum')
 
@@ -24,7 +24,7 @@ class TestProcessFile(TestCase):
     def test_process_file_removes_synced_file(self, _1, _2, os):
 	process_file(self.file_entry)
 
-	os.remove.asserrt_called_once_with(self.file_entry[0])
+	os.remove.assert_called_once_with(self.file_entry[0])
 
 @patch('messor.forager.pick_up.calculate_checksum')
 class TestBuildFileIndex(TestCase):
