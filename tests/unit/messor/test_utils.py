@@ -61,10 +61,15 @@ class TestListDirectories(TestCase):
 
     def test_list_directories_filters_directories(self, os):
         os.listdir.return_value = ['dir1', 'file1', 'dir2']
+        mock_calls = [
+                call('/some/path', 'dir1'),
+                call('/some/path', 'file1'),
+                call('/some/path', 'dir2'),
+        ]
 
         list_directories('/some/path')
 
-        self.assertEqual(map(call, os.listdir.return_value), os.path.abspath.mock_calls)
+        self.assertEqual(mock_calls, os.path.join.mock_calls)
         self.assertEqual(6, len(os.path.isdir.mock_calls))
 
     def test_list_directories_returns_only_directories(self, os):

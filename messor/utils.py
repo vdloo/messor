@@ -13,7 +13,7 @@ def list_all_files(directory):
     return flatten_list(map(stitch_directory_and_files, os.walk(directory)))
 
 def list_directories(directory):
-    filter_directories = lambda dr: os.path.isdir(os.path.abspath(dr))
+    filter_directories = lambda dr: os.path.isdir(os.path.join(directory, dr))
     return filter(filter_directories, os.listdir(directory))
 
 def calculate_checksum(path):
