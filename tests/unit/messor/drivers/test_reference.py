@@ -18,33 +18,46 @@ class TestReferencePathFromFilename(TestCase):
 
 	self.assertEqual(os.path.join.return_value, ret)
 
-@patch('messor.drivers.reference.open')
-@patch('messor.drivers.reference.ensure_directory')
-@patch('messor.drivers.reference.os')
-@patch('messor.drivers.reference.ChecksumFilesDriver._reference_path_from_filename')
 class TestEnsureFilenameReference(TestCase):
-    def test_ensure_filename_reference_gets_reference_path(self, ref_path, *_):
+    def setUp(self):
+        patcher = patch('messor.drivers.reference.open')
+        self.addCleanup(patcher.stop)
+        self.mock_open = patcher.start()
+
+        patcher = patch('messor.drivers.reference.ensure_directory')
+        self.addCleanup(patcher.stop)
+        self.ensure_directory = patcher.start()
+
+        patcher = patch('messor.drivers.reference.os')
+        self.addCleanup(patcher.stop)
+        self.mock_os = patcher.start()
+
+        patcher = patch('messor.drivers.reference.ChecksumFilesDriver._reference_path_from_filename')
+        self.addCleanup(patcher.stop)
+        self.ref_path = patcher.start()
+
+    def test_ensure_filename_reference_gets_reference_path(self):
 	driver.ensure_filename_reference('/some/filename.txt', 'achecksum')
 
-	ref_path.asert_called_once_with('/some/filename.txt')
+	self.ref_path.asert_called_once_with('/some/filename.txt')
 
-    def test_ensure_filename_reference_gets_dirname_from_path(self, ref_path, os, *_):
+    def test_ensure_filename_reference_gets_dirname_from_path(self):
 	driver.ensure_filename_reference('/some/filename.txt', 'achecksum')
 
-	os.path.dirname.assert_called_once_with(ref_path.return_value)
+	self.mock_os.path.dirname.assert_called_once_with(self.ref_path.return_value)
 
-    def test_ensure_filename_reference_ensures_directory(self, _1, os, ensure_directory, *_):
+    def test_ensure_filename_reference_ensures_directory(self):
 	driver.ensure_filename_reference('/some/filename.txt', 'achecksum')
 
-	ensure_directory.assert_called_once_with(os.path.dirname.return_value)
+	self.ensure_directory.assert_called_once_with(self.mock_os.path.dirname.return_value)
 
-    def test_ensure_filename_reference_opens_reference_wronly(self, ref_path, _1, _2, mock_open):
+    def test_ensure_filename_reference_opens_reference_wronly(self):
 	driver.ensure_filename_reference('/some/filename.txt', 'achecksum')
 
-	mock_open.assert_called_once_with(ref_path.return_value, 'w')
+	self.mock_open.assert_called_once_with(self.ref_path.return_value, 'w')
 	
-    def test_ensure_filename_reference_writes_checksum(self, ref_path, _1, _2, mock_open):
-	file_handle = mock_open.return_value.__enter__.return_value
+    def test_ensure_filename_reference_writes_checksum(self):
+	file_handle = self.mock_open.return_value.__enter__.return_value
 
 	driver.ensure_filename_reference('/some/filename.txt', 'achecksum')
 
