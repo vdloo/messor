@@ -7,7 +7,7 @@ from messor.forager.drop_off import drop_off, list_buffer_hosts, sync_to_inbox, 
 
 class TestProcessFile(TestCase):
     def setUp(self):
-        patcher = patch('messor.drivers.transfer.FlatBufferDriver.ensure_file_in_inbox')
+        patcher = patch('messor.drivers.reference.ChecksumFilesDriver.ensure_file_in_inbox')
         self.addCleanup(patcher.stop)
         self.ensure_file_in_inbox = patcher.start()
 
@@ -49,7 +49,7 @@ class TestFlushBuffer(TestCase):
             [('filename3', 'checksum3')]
         ]
 
-        patcher = patch('messor.drivers.transfer.FlatBufferDriver.purge_buffer')
+        patcher = patch('messor.drivers.reference.ChecksumFilesDriver.purge_buffer')
         self.addCleanup(patcher.stop)
         self.purge_buffer = patcher.start()
 

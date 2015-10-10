@@ -5,18 +5,16 @@ from operator import itemgetter
 from messor.settings import FORMICARY_PATH, FORAGER_BUFFER
 from messor.utils import list_all_files, list_directories, calculate_checksum, \
     ensure_directory
-from messor.drivers.transfer import FlatBufferDriver
 from messor.drivers.reference import ChecksumFilesDriver
 
 logger = logging.getLogger(__name__)
 
 reference_driver = ChecksumFilesDriver()
-transfer_driver = FlatBufferDriver()
 
 def process_file(file_entry):
     filename, checksum = file_entry
     logger.debug("Processing file %s" % filename)
-    transfer_driver.ensure_file_in_buffer(filename, checksum)
+    reference_driver.ensure_file_in_buffer(filename, checksum)
     reference_driver.ensure_filename_reference(filename, checksum)
     os.remove(filename)
 

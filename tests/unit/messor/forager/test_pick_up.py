@@ -11,7 +11,7 @@ class TestProcessFile(TestCase):
 	self.addCleanup(patcher.stop)
 	self.mock_os = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.FlatBufferDriver.ensure_file_in_buffer')
+	patcher = patch('messor.forager.pick_up.ChecksumFilesDriver.ensure_file_in_buffer')
 	self.addCleanup(patcher.stop)
 	self.ensure_in_buffer = patcher.start()
 
