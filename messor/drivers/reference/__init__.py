@@ -1,6 +1,10 @@
 import os
+import logging
+
 from messor.utils import ensure_directory, list_all_files
 from messor.settings import FORAGER_BUFFER, FORMICARY_PATH
+
+logger = logging.getLogger(__name__)
 
 # This driver uses individual files written to a directory structure that is
 # a copy of the source, each containing the checksum of the referenced file as
@@ -12,6 +16,8 @@ class ChecksumFilesDriver(object):
         return os.path.join(FORAGER_BUFFER, 'hosts', reference)
 
     def ensure_filename_reference(self, filename, checksum):
+	logger.debug("Ensuring filename reference %s for file %s" % \
+			(checksum, filename))
         reference_path = self._reference_path_from_filename(filename)
         ensure_directory(os.path.dirname(reference_path))
         with open(reference_path, 'w') as f:
@@ -32,6 +38,7 @@ class ChecksumFilesDriver(object):
         return filename.replace(os.path.join(FORAGER_BUFFER, 'hosts'), '')
 
     def file_index_for_host(self, host):
+	logger.debug("Creating file index for host %s" % host)
         references = self._list_all_references_for_host(host)
         filenames = map(self._remove_buffer_path_from_filename, references)
         checksums = map(self._read_checksum_from_file, references)
