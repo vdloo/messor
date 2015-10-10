@@ -2,13 +2,24 @@ import os
 from shutil import copyfile
 import logging
 
-from messor.utils import calculate_checksum, ensure_directory
+from messor.utils import calculate_checksum, ensure_directory, list_all_files
 from messor.settings import FORAGER_BUFFER, FORMICARY_PATH
 
 logger = logging.getLogger(__name__)
 
 # This driver stores the files in a buffer directory using each file's hash as the file name. This means there is deduplication on file level.
 class FlatBufferDriver(object):
+    def purge_file_in_buffer(self, checksum):
+        filename = os.path.join(FORAGER_BUFFER, checksum)
+        logger.debug("Removing %s from buffer" % checksum)
+        os.remove(filename)
+
+    def purge_buffer(self, reference_checksums):
+        logger.debug("Purging resolved files from buffer")
+        buffer_checksums = list_all_files(FORAGER_BUFFER)
+        resolved_checksums = filter(lambda buffer_checksum: buffer_checksum not in reference_checksums, buffer_checksums)
+        map(self.purge_file_in_buffer, resolved_checksums)
+
     def ensure_file_in_buffer(self, filename, checksum):
 	logger.debug("Ensuring file in buffer: %s" % filename)
         dst = os.path.join(FORAGER_BUFFER, checksum)
