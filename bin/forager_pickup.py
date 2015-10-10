@@ -4,4 +4,5 @@ from messor.forager.pick_up import pick_up
 def main():
     pick_up()
 
-main()
+if __name__ == '__main__': 
+    main()
