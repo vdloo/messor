@@ -3,9 +3,13 @@ from mock import patch
 
 from bin.forager_dropoff import main
 
-@patch('bin.forager_dropoff.drop_off')
 class TestForagerDropoff(TestCase):
-    def test_main_calls_drop_off(self, drop_off):
+    def setUp(self):
+        patcher = patch('bin.forager_dropoff.drop_off')
+        self.addCleanup(patcher.stop)
+        self.drop_off = patcher.start()
+
+    def test_main_calls_drop_off(self):
 	main()
 
-	drop_off.assert_called_once_with()
+	self.drop_off.assert_called_once_with()

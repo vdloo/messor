@@ -13,54 +13,72 @@ class TestFlattenList(TestCase):
 
         self.assertEqual(ret, ['1', '2', '3', '4'])
 
-@patch('messor.utils.os')
 class TestStitchDirectoryAndFiles(TestCase):
-    def test_stitch_joins_first_and_third_el(self, os):
+    def setUp(self):
+        patcher = patch('messor.utils.os')
+        self.addCleanup(patcher.stop)
+        self.os = patcher.start()
+
+    def test_stitch_joins_first_and_third_el(self):
         stitch_directory_and_files(('1', '2', ['3', '4']))
 
-        self.assertEqual([call('1', '3'), call('1', '4')], os.path.join.mock_calls)
+        self.assertEqual([call('1', '3'), call('1', '4')], self.os.path.join.mock_calls)
 
-    def test_stitch_returns_list_of_joined(self, os):
+    def test_stitch_returns_list_of_joined(self):
         ret = stitch_directory_and_files(('1', '2', ['3', '4']))
 
-        self.assertEqual(ret, [os.path.join.return_value, os.path.join.return_value])
+        self.assertEqual(ret, [self.os.path.join.return_value, self.os.path.join.return_value])
 
-@patch('messor.utils.flatten_list')
-@patch('messor.utils.stitch_directory_and_files')
-@patch('messor.utils.os')
 class TestListAllFiles(TestCase):
-    def test_list_all_files_walks_directory(self, os, *_):
+    def setUp(self):
+        patcher = patch('messor.utils.flatten_list')
+        self.addCleanup(patcher.stop)
+        self.flatten = patcher.start()
+
+        patcher = patch('messor.utils.stitch_directory_and_files')
+        self.addCleanup(patcher.stop)
+        self.stitch = patcher.start()
+
+        patcher = patch('messor.utils.os')
+        self.addCleanup(patcher.stop)
+        self.os = patcher.start()
+
+    def test_list_all_files_walks_directory(self):
         list_all_files('/some/path')
 
-        os.walk.assert_called_once_with('/some/path')
+        self.os.walk.assert_called_once_with('/some/path')
 
-    def test_list_all_files_stitches_all_files_to_dirs(self, os, stitch, _):
-        os.walk.return_value = ['1', '2', '3', '4']
+    def test_list_all_files_stitches_all_files_to_dirs(self):
+        self.os.walk.return_value = ['1', '2', '3', '4']
 
         list_all_files('/some/path')
 
-        self.assertEqual(map(call, os.walk.return_value), stitch.mock_calls)
+        self.assertEqual(map(call, self.os.walk.return_value), self.stitch.mock_calls)
 
-    def test_list_all_files_flattens_stitched_lists(self, os, stitch, flatten):
-        os.walk.return_value = ['1']
+    def test_list_all_files_flattens_stitched_lists(self):
+        self.os.walk.return_value = ['1']
         list_all_files('/some/path')
 
-        flatten.assert_called_once_with([stitch.return_value])
+        self.flatten.assert_called_once_with([self.stitch.return_value])
 
-    def teest_list_all_files_returns_flattened_list(self, _1, _2, flatten):
+    def teest_list_all_files_returns_flattened_list(self):
         ret = list_all_files('/some/path')
 
-        self.assertEqual(ret, flatten.return_value)
+        self.assertEqual(ret, self.flatten.return_value)
 
-@patch('messor.utils.os')
 class TestListDirectories(TestCase):
-    def test_list_directories_lists_dir(self, os):
+    def setUp(self):
+        patcher = patch('messor.utils.os')
+        self.addCleanup(patcher.stop)
+        self.os = patcher.start()
+
+    def test_list_directories_lists_dir(self):
         list_directories('/some/path')
 
-        os.listdir.assert_called_once_with('/some/path')
+        self.os.listdir.assert_called_once_with('/some/path')
 
-    def test_list_directories_filters_directories(self, os):
-        os.listdir.return_value = ['dir1', 'file1', 'dir2']
+    def test_list_directories_filters_directories(self):
+        self.os.listdir.return_value = ['dir1', 'file1', 'dir2']
         mock_calls = [
                 call('/some/path', 'dir1'),
                 call('/some/path', 'file1'),
@@ -69,50 +87,57 @@ class TestListDirectories(TestCase):
 
         list_directories('/some/path')
 
-        self.assertEqual(mock_calls, os.path.join.mock_calls)
-        self.assertEqual(6, len(os.path.isdir.mock_calls))
+        self.assertEqual(mock_calls, self.os.path.join.mock_calls)
+        self.assertEqual(6, len(self.os.path.isdir.mock_calls))
 
-    def test_list_directories_returns_only_directories(self, os):
-        os.listdir.return_value = ['dir1', 'dir2']
-        os.path.isdir.return_value = False
+    def test_list_directories_returns_only_directories(self):
+        self.os.listdir.return_value = ['dir1', 'dir2']
+        self.os.path.isdir.return_value = False
 
         ret = list_directories('/some/path')
 
         self.assertEqual([], ret)
 
-@patch('messor.utils.open')
-@patch('messor.utils.hashlib')
 class TestCalculateChecksum(TestCase):
-    def test_calculate_checksum_instantiates_hasher(self, hlib, _):
+    def setUp(self):
+        patcher = patch('messor.utils.open')
+        self.addCleanup(patcher.stop)
+        self.mock_open = patcher.start()
+
+        patcher = patch('messor.utils.hashlib')
+        self.addCleanup(patcher.stop)
+        self.hlib = patcher.start()
+
+    def test_calculate_checksum_instantiates_hasher(self):
         calculate_checksum('/some/path/file.txt')
 
-        hlib.md5.assert_called_once_with()
+        self.hlib.md5.assert_called_once_with()
 
-    def test_calculate_checksum_opens_path_rb(self, _, mock_open):
+    def test_calculate_checksum_opens_path_rb(self):
         calculate_checksum('/some/path/file.txt')
 
-        mock_open.assert_called_once_with('/some/path/file.txt', 'rb')
+        self.mock_open.assert_called_once_with('/some/path/file.txt', 'rb')
 
-    def test_calculate_checksum_reads_bytes_until_empty(self, hlib, mock_open):
-        file_handle = mock_open.return_value.__enter__.return_value
+    def test_calculate_checksum_reads_bytes_until_empty(self):
+        file_handle = self.mock_open.return_value.__enter__.return_value
         file_handle.read.side_effect = ['1', '2', '3', '']
-        file_hash = hlib.md5.return_value
+        file_hash = self.hlib.md5.return_value
 
         calculate_checksum('/some/path/file.txt')
 
         self.assertEqual(4, len(file_handle.read.mock_calls))
 
-    def test_calculate_checksum_updates_hasher_until_empty(self, hlib, mock_open):
-        file_handle = mock_open.return_value.__enter__.return_value
+    def test_calculate_checksum_updates_hasher_until_empty(self):
+        file_handle = self.mock_open.return_value.__enter__.return_value
         file_handle.read.side_effect = ['1', '2', '3', '']
-        file_hash = hlib.md5.return_value
+        file_hash = self.hlib.md5.return_value
 
         calculate_checksum('/some/path/file.txt')
 
         self.assertEqual(map(call, ['1', '2', '3']), file_hash.update.mock_calls)
 
-    def test_calculate_checksum_returns_hexdigest(self, hlib, _):
-        file_hash = hlib.md5.return_value
+    def test_calculate_checksum_returns_hexdigest(self):
+        file_hash = self.hlib.md5.return_value
 
         ret = calculate_checksum('/some/path/file.txt')
 
@@ -120,30 +145,41 @@ class TestCalculateChecksum(TestCase):
         self.assertEqual(ret, file_hash.hexdigest.return_value)
 
 
-@patch('messor.utils.os.makedirs')
-@patch('messor.utils.os.path.exists')
 class TestEnsureDirectory(TestCase):
-    def test_ensure_directory_mks_dir_if_not_exists(self, exists, makedirs):
-        exists.return_value = False
+    def setUp(self):
+        patcher = patch('messor.utils.os.makedirs')
+        self.addCleanup(patcher.stop)
+        self.makedirs = patcher.start()
+
+        patcher = patch('messor.utils.os.path.exists')
+        self.addCleanup(patcher.stop)
+        self.exists = patcher.start()
+
+    def test_ensure_directory_mks_dir_if_not_exists(self):
+        self.exists.return_value = False
 
         ensure_directory('dir')
 
-	makedirs.assert_called_once_with('dir')
+	self.makedirs.assert_called_once_with('dir')
 
-    def test_ensure_directory_not_mks_dir_if_exists(self, exists, makedirs):
-        exists.return_value = True
+    def test_ensure_directory_not_mks_dir_if_exists(self):
+        self.exists.return_value = True
 
         ensure_directory('dir')
 
-	self.assertEqual(0, len(makedirs.mock_calls))
+	self.assertEqual(0, len(self.makedirs.mock_calls))
 
 
-@patch('messor.utils.ensure_directory')
 class TestEnsureDirectories(TestCase):
-    def test_ensure_directories_ensures_all_directories(self, ensure_directory):
+    def setUp(self):
+        patcher = patch('messor.utils.ensure_directory')
+        self.addCleanup(patcher.stop)
+        self.ensure_directory = patcher.start()
+
+    def test_ensure_directories_ensures_all_directories(self):
 	ensure_directories(['dir1', 'dir2', 'dir3'])
 
-	mock_calls = ensure_directory.mock_calls
+	mock_calls = self.ensure_directory.mock_calls
 
 	expected_calls = [call('dir1'), call('dir2'), call('dir3')]
 	self.assertEqual(expected_calls, mock_calls)

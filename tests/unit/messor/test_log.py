@@ -3,9 +3,13 @@ from mock import patch
 
 from messor.log import setup_logging
 
-@patch('messor.log.logging')
 class TestSetupLogging(TestCase):
-    def test_setup_logging_gets_root_logger(self, logging):
+    def setUp(self):
+        patcher = patch('messor.log.logging')
+        self.addCleanup(patcher.stop)
+        self.logging = patcher.start()
+
+    def test_setup_logging_gets_root_logger(self):
         setup_logging()
 
-        logging.getLogger.assert_called_once_with('')
+        self.logging.getLogger.assert_called_once_with('')
