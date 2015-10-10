@@ -4,4 +4,5 @@ from messor.forager.drop_off import drop_off
 def main():
     drop_off()
 
-main()
+if __name__ == '__main__': 
+    main()

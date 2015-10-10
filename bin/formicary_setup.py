@@ -6,4 +6,5 @@ def main():
     setup_logging()
     setup_formicary()
 
-main()
+if __name__ == '__main__':
+    main()
