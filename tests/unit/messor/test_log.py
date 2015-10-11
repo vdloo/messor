@@ -12,4 +12,4 @@ class TestSetupLogging(TestCase):
     def test_setup_logging_gets_root_logger(self):
         setup_logging()
 
-        self.logging.getLogger.assert_called_once_with('')
+        self.logging.getLogger.assert_called_once_with('messor')
