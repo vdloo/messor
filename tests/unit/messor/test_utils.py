@@ -107,6 +107,16 @@ class TestListDirectories(TestCase):
 
         self.assertEqual([], ret)
 
+    def test_list_directories_uses_conn_if_specified(self):
+        conn = Mock()
+        conn.modules.os.listdir.return_value = ['dir1', 'file1', 'dir2']
+
+        list_directories('/some/path', conn)
+
+        conn.modules.os.listdir.assert_called_once_with('/some/path')
+        self.assertEqual(3, len(conn.modules.os.path.isdir.mock_calls))
+
+
 class TestCalculateChecksum(TestCase):
     def setUp(self):
         patcher = patch('messor.utils.open')

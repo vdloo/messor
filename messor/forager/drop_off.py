@@ -33,17 +33,17 @@ def sync_to_inbox(host, conn):
     flush_buffer()
 
 def process_host(host):
-    machine = SshMachine(host)
-    server = DeployedServer(machine)
-    conn = server.classic_connect()
     try:
+        machine = SshMachine(host)
+        server = DeployedServer(machine)
+        conn = server.classic_connect()
         conn.ping()
         sync_to_inbox(host, conn)
     except EOFError:
 	logger.debug("Host %s not in range, skipping!" % host)
 
 def list_buffer_hosts():
-    logger.debug("Creating a list of buffer host directories")
+    logger.debug("Generating a list of buffer host directories")
     buffer_path = os.path.join(FORAGER_BUFFER, 'hosts')
     return list_directories(buffer_path)
 

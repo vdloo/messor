@@ -183,6 +183,13 @@ class TestProcessHost(TestCase):
         self.sync_to_inbox.assert_called_once_with('testhost', self.conn)
 
     def test_process_host_skips_host_if_can_not_establish_connection(self):
+        self.sshmachine.side_effect = EOFError
+
+        process_host('testhost')
+
+        self.assertEqual(0, len(self.sync_to_inbox.mock_calls))
+
+    def test_process_host_skips_host_if_can_not_ping_host_rpyc_server(self):
         self.conn.ping.side_effect = EOFError
 
         process_host('testhost')

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import patch, call
+from mock import patch, call, Mock
 
 from messor.drivers.reference import ChecksumFilesDriver
 from messor.settings import FORAGER_BUFFER, FORMICARY_PATH
@@ -50,41 +50,63 @@ class TestEnsureFileInBuffer(TestCase):
         self.addCleanup(patcher.stop)
         self.mock_os = patcher.start()
 
-        patcher = patch('messor.drivers.reference.copyfile')
+        patcher = patch('messor.drivers.reference.copyfileobj')
         self.addCleanup(patcher.stop)
-        self.copyfile = patcher.start()
+        self.copyfileobj = patcher.start()
 
         patcher = patch('messor.drivers.reference.calculate_checksum')
         self.addCleanup(patcher.stop)
         self.csum = patcher.start()
 
+        patcher = patch('messor.drivers.reference.open')
+        self.addCleanup(patcher.stop)
+        self.mock_open = patcher.start()
+
+        self.conn = Mock()
+
     def test_ensure_file_in_buffer_joins_path(self):
-        driver.ensure_file_in_buffer('somefile.txt', 'achecksum')
+        driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.conn)
 
         self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'achecksum')
+
+    def test_ensure_file_in_buffer_opens_source_file(self):
+        driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.conn)
+
+        self.conn.builtin.open.assert_called_once_with('somefile.txt')
+
+    def test_ensure_file_in_buffer_opens_destination_file(self):
+        driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.conn)
+
+        self.mock_open.assert_called_once_with(self.mock_os.path.join.return_value, 'w')
 
     def test_ensure_file_in_buffer_copies_file_if_dst_doesnt_exist(self):
         self.mock_os.path.isfile.return_value = False
 
-        driver.ensure_file_in_buffer('somefile.txt', 'achecksum')
+        driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.conn)
 
-        self.copyfile.assert_called_once_with('somefile.txt', self.mock_os.path.join.return_value)
+        self.copyfileobj.assert_called_once_with(
+            self.conn.builtin.open.return_value,
+            self.mock_open.return_value
+        )
 
     def test_ensure_file_in_buffer_copies_file_if_exists_but_other_checksum(self):
         self.mock_os.path.isfile.return_value = True
         self.csum.return_value = 'adifferentchecksum'
 
-        driver.ensure_file_in_buffer('somefile.txt', 'achecksum')
+        driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.conn)
 
-        self.copyfile.assert_called_once_with('somefile.txt', self.mock_os.path.join.return_value)
+        self.copyfileobj.assert_called_once_with(
+            self.conn.builtin.open.return_value,
+            self.mock_open.return_value
+        )
 
     def test_ensure_file_in_buffer_doesnt_copy_file_when_not_necessary(self):
         self.mock_os.path.isfile.return_value = True
         self.csum.return_value = 'achecksum'
 
-        driver.ensure_file_in_buffer('somefile.txt', 'achecksum')
+        driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.conn)
 
-        self.assertEqual(0, len(self.copyfile.mock_calls))
+        self.assertEqual(0, len(self.copyfileobj.mock_calls))
 
 
 @patch('messor.drivers.reference.os')

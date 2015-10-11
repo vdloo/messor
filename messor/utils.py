@@ -13,9 +13,10 @@ def list_all_files(directory, conn=None):
     return flatten_list(map(stitch_directory_and_files, 
 	    conn.modules.os.walk(directory) if conn else os.walk(directory)))
 
-def list_directories(directory):
-    filter_directories = lambda dr: os.path.isdir(os.path.join(directory, dr))
-    return filter(filter_directories, os.listdir(directory))
+def list_directories(directory, conn=None):
+    os_module = conn.modules.os if conn else os
+    filter_directories = lambda dr: os_module.path.isdir(os.path.join(directory, dr))
+    return filter(filter_directories, os_module.listdir(directory))
 
 def calculate_checksum(path, conn=None):
     filehash = hashlib.md5() 

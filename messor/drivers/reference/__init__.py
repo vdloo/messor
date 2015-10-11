@@ -56,12 +56,14 @@ class ChecksumFilesDriver(object):
         resolved_checksums = filter(lambda buffer_checksum: buffer_checksum not in reference_checksums, buffer_checksums)
         map(self.purge_file_in_buffer, resolved_checksums)
 
-    def ensure_file_in_buffer(self, filename, checksum):
+    def ensure_file_in_buffer(self, filename, checksum, conn):
 	logger.debug("Ensuring file in buffer: %s" % filename)
         dst = os.path.join(FORAGER_BUFFER, checksum)
-        if not os.path.isfile(dst) or calculate_checksum(filename) != checksum:
+        if not os.path.isfile(dst) or calculate_checksum(dst) != checksum:
 	    logger.debug("Copying file to buffer")
-	    copyfile(filename, dst)
+	    remote = conn.builtin.open(filename)
+	    local = open(dst, 'w')
+	    copyfileobj(remote, local)
 	else:
             logger.debug("File already in buffer, skipping!")
 
