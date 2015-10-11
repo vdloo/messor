@@ -18,7 +18,7 @@ def list_directories(directory, conn=None):
     filter_directories = lambda dr: os_module.path.isdir(os.path.join(directory, dr))
     return filter(filter_directories, os_module.listdir(directory))
 
-def calculate_checksum(path, conn=None):
+def _calculate_checksum(path, conn):
     filehash = hashlib.md5() 
     with (conn.builtin.open(path, 'rb') if conn else open(path, 'rb')) as f:
         buf = f.read(4096)
@@ -26,6 +26,10 @@ def calculate_checksum(path, conn=None):
     	    filehash.update(buf)
             buf = f.read(4096)
         return filehash.hexdigest()
+
+def calculate_checksum(path, conn=None):
+    callback = [_calculate_checksum, (path, conn)]
+    return conn.modules.__builtin__.apply(*callback) if conn else apply(*callback) 
 
 def ensure_directory(directory, conn=None):
     if not (conn.modules.os.path.exists(directory) if conn else os.path.exists(directory)):

@@ -3,7 +3,7 @@ from mock import call, patch, Mock, MagicMock
 
 from messor.utils import ensure_directory, ensure_directories, \
     calculate_checksum, list_directories, list_all_files, \
-    stitch_directory_and_files, flatten_list
+    stitch_directory_and_files, flatten_list, _calculate_checksum
 
 class TestFlattenList(TestCase):
     def test_flatten_list_flattens_list(self):
@@ -165,7 +165,8 @@ class TestCalculateChecksum(TestCase):
 
     def test_calculate_checksum_uses_conn_if_specified(self):
         conn = MagicMock()
-        calculate_checksum('/some/path/file.txt', conn)
+
+        _calculate_checksum('/some/path/file.txt', conn)
 
         conn.builtin.open.assert_called_once_with('/some/path/file.txt', 'rb')
 
