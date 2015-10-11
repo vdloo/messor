@@ -1,6 +1,6 @@
 import os
 import logging
-from shutil import copyfile
+from shutil import copyfileobj, copyfile
 
 from messor.utils import ensure_directory, list_all_files, calculate_checksum
 from messor.settings import FORAGER_BUFFER, FORMICARY_PATH
@@ -65,13 +65,15 @@ class ChecksumFilesDriver(object):
 	else:
             logger.debug("File already in buffer, skipping!")
 
-    def ensure_file_in_inbox(self, filename, checksum):
+    def ensure_file_in_inbox(self, filename, checksum, conn):
 	logger.debug("Ensuring file in inbox: %s" % filename)
         src = os.path.join(FORAGER_BUFFER, checksum)
         dst = FORMICARY_PATH + '/inbox' + filename
-        ensure_directory(os.path.dirname(dst))
-        if not os.path.isfile(dst) or calculate_checksum(dst) != checksum:
+        ensure_directory(os.path.dirname(dst), conn)
+        if not conn.modules.os.path.isfile(dst) or calculate_checksum(dst, conn) != checksum:
 	    logger.debug("Copying file to inbox")
-	    copyfile(src, dst)
+	    local = open(src)
+	    remote = conn.builtin.open(dst, "w")
+	    copyfileobj(local, remote)
 	else:
 	    logger.debug("File already in inbox, skipping!")

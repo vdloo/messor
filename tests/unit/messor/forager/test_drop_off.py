@@ -3,7 +3,7 @@ from mock import patch, call, Mock
 
 from messor.settings import FORAGER_BUFFER
 from messor.forager.drop_off import drop_off, list_buffer_hosts, sync_to_inbox, \
-    flush_buffer, process_file
+    flush_buffer, process_file, process_host
 
 class TestProcessFile(TestCase):
     def setUp(self):
@@ -16,18 +16,20 @@ class TestProcessFile(TestCase):
         self.mock_os = patcher.start()
         self.mock_os.path.join.return_value = 'hosts_path'
 
-    def test_process_file_ensures_file_in_inbox(self):
-        process_file(('filename', 'checksum'))
+        self.conn = Mock()
 
-        self.ensure_file_in_inbox.assert_called_once_with('filename', 'checksum')
+    def test_process_file_ensures_file_in_inbox(self):
+        process_file(('filename', 'checksum'), self.conn)
+
+        self.ensure_file_in_inbox.assert_called_once_with('filename', 'checksum', self.conn)
 
     def test_process_file_creates_composes_file_path(self):
-        process_file(('filename', 'checksum'))
+        process_file(('filename', 'checksum'), self.conn)
 
         self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'hosts')
 
     def test_process_file_deletes_reference_file(self):
-        process_file(('filename', 'checksum'))
+        process_file(('filename', 'checksum'), self.conn)
 
         self.mock_os.remove.assert_called_once_with('hosts_path' + 'filename')
 
@@ -88,18 +90,25 @@ class TestSyncToInbox(TestCase):
         self.addCleanup(patcher.stop)
         self.flush_buffer = patcher.start()
 
+        self.conn = Mock()
+
     def test_sync_to_inbox_gets_file_index_for_host(self):
-        sync_to_inbox('host1')
+        sync_to_inbox('host1', self.conn)
 
         self.file_index_for_host.assert_called_once_with('host1')
 
     def test_sync_to_inbox_processes_all_files_for_host(self):
-        sync_to_inbox('host1')
+        sync_to_inbox('host1', self.conn)
 
-        self.assertEqual(map(call, self.mock_file_entries), self.process_file.mock_calls)
+        expected_calls = [
+                call(self.mock_file_entries[0], self.conn),
+                call(self.mock_file_entries[1], self.conn),
+                call(self.mock_file_entries[2], self.conn),
+        ]
+        self.assertEqual(expected_calls, self.process_file.mock_calls)
 
     def test_sync_to_inbox_flushes_buffer(self):
-        sync_to_inbox('host1')
+        sync_to_inbox('host1', self.conn)
 
         self.flush_buffer.assert_called_once_with()
 
@@ -131,6 +140,55 @@ class TestListBufferHosts(TestCase):
 
         self.assertEqual(ret, self.list_directories.return_value)
 
+class TestProcessHost(TestCase):
+    def setUp(self):
+        patcher = patch('messor.forager.drop_off.SshMachine')
+        self.addCleanup(patcher.stop)
+        self.sshmachine = patcher.start()
+
+        patcher = patch('messor.forager.drop_off.DeployedServer')
+        self.addCleanup(patcher.stop)
+        self.deployedserver = patcher.start()
+
+        self.conn = self.deployedserver.return_value.classic_connect.return_value
+
+        patcher = patch('messor.forager.drop_off.sync_to_inbox')
+        self.addCleanup(patcher.stop)
+        self.sync_to_inbox = patcher.start()
+
+
+    def test_process_host_connects_to_remote(self):
+        process_host('testhost')
+
+        self.sshmachine.assert_called_once_with('testhost')
+
+    def test_process_host_deploys_server(self):
+        process_host('testhost')
+
+        self.deployedserver.assert_called_once_with(self.sshmachine.return_value)
+
+    def test_process_host_gets_connection(self):
+        process_host('testhost')
+
+        self.deployedserver.return_value.classic_connect.assert_called_once_with()
+
+    def test_process_host_pings_connection(self):
+        process_host('testhost')
+
+        self.conn.ping.assert_called_once_with()
+
+    def test_process_host_syncs_to_inbox(self):
+        process_host('testhost')
+
+        self.sync_to_inbox.assert_called_once_with('testhost', self.conn)
+
+    def test_process_host_skips_host_if_can_not_establish_connection(self):
+        self.conn.ping.side_effect = EOFError
+
+        process_host('testhost')
+
+        self.assertEqual(0, len(self.sync_to_inbox.mock_calls))
+
 
 class TestDropOff(TestCase):
     def setUp(self):
@@ -140,18 +198,18 @@ class TestDropOff(TestCase):
         self.fake_hosts = ['host1', 'host2']
         self.list_buffer_hosts.return_value = self.fake_hosts
 
-        patcher = patch('messor.forager.drop_off.sync_to_inbox')
+        patcher = patch('messor.forager.drop_off.process_host')
         self.addCleanup(patcher.stop)
-        self.sync_to_inbox = patcher.start()
+        self.process_host = patcher.start()
 
     def test_drop_off_lists_buffer_hosts(self):
         drop_off()
 
         self.list_buffer_hosts.assert_called_once_with()
 
-    def test_drop_off_syncs_all_buffer_hosts_to_inbox(self):
+    def test_drop_off_processes_all_hosts(self):
         drop_off()
 
-        self.assertEqual(map(call, self.fake_hosts), self.sync_to_inbox.mock_calls)
+        self.assertEqual(map(call, self.fake_hosts), self.process_host.mock_calls)
 
 

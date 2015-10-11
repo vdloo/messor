@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import call, patch
+from mock import call, patch, Mock, MagicMock
 
 from messor.utils import ensure_directory, ensure_directories, \
     calculate_checksum, list_directories, list_all_files, \
@@ -61,10 +61,19 @@ class TestListAllFiles(TestCase):
 
         self.flatten.assert_called_once_with([self.stitch.return_value])
 
-    def teest_list_all_files_returns_flattened_list(self):
+    def test_list_all_files_returns_flattened_list(self):
         ret = list_all_files('/some/path')
 
         self.assertEqual(ret, self.flatten.return_value)
+
+    def test_list_all_files_uses_conn_if_specified(self):
+        conn = Mock()
+        conn.modules.os.walk.return_value = ['1']
+
+        list_all_files('/some/path', conn)
+
+        conn.modules.os.walk.assert_called_once_with('/some/path')
+
 
 class TestListDirectories(TestCase):
     def setUp(self):
@@ -144,6 +153,12 @@ class TestCalculateChecksum(TestCase):
         file_hash.hexdigest.assert_called_once_with()
         self.assertEqual(ret, file_hash.hexdigest.return_value)
 
+    def test_calculate_checksum_uses_conn_if_specified(self):
+        conn = MagicMock()
+        calculate_checksum('/some/path/file.txt', conn)
+
+        conn.builtin.open.assert_called_once_with('/some/path/file.txt', 'rb')
+
 
 class TestEnsureDirectory(TestCase):
     def setUp(self):
@@ -168,6 +183,15 @@ class TestEnsureDirectory(TestCase):
         ensure_directory('dir')
 
 	self.assertEqual(0, len(self.makedirs.mock_calls))
+
+    def test_ensure_directory_uses_conn_if_provided(self):
+        conn = Mock()
+        conn.modules.os.path.exists.return_value = False
+
+        ensure_directory('dir', conn)
+
+        conn.modules.os.path.exists.assert_called_once_with('dir')
+        conn.modules.os.makedirs.assert_called_once_with('dir')
 
 
 class TestEnsureDirectories(TestCase):
