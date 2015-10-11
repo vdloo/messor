@@ -21,10 +21,10 @@ def list_directories(directory, conn=None):
 def _calculate_checksum(path, conn):
     filehash = hashlib.md5() 
     with (conn.builtin.open(path, 'rb') if conn else open(path, 'rb')) as f:
-        buf = f.read(4096)
+        buf = f.read()
         while len(buf) > 0:
     	    filehash.update(buf)
-            buf = f.read(4096)
+            buf = f.read(65536)
         return filehash.hexdigest()
 
 def calculate_checksum(path, conn=None):
