@@ -1,6 +1,6 @@
 import os
 import logging
-from shutil import copyfileobj, copyfile
+from rpyc.utils.classic import download, upload
 
 from messor.utils import ensure_directory, list_all_files, calculate_checksum
 from messor.settings import FORAGER_BUFFER, FORMICARY_PATH
@@ -56,26 +56,24 @@ class ChecksumFilesDriver(object):
         resolved_checksums = filter(lambda buffer_checksum: buffer_checksum not in reference_checksums, buffer_checksums)
         map(self.purge_file_in_buffer, resolved_checksums)
 
-    def ensure_file_in_buffer(self, filename, checksum, conn):
+    def ensure_file_in_buffer(self, filename, checksum, remote_driver):
 	logger.debug("Ensuring file in buffer: %s" % filename)
         dst = os.path.join(FORAGER_BUFFER, checksum)
+
         if not os.path.isfile(dst) or calculate_checksum(dst) != checksum:
 	    logger.debug("Copying file to buffer")
-	    remote = conn.builtin.open(filename)
-	    local = open(dst, 'w')
-	    copyfileobj(remote, local)
+            remote_driver.download(filename, dst)
 	else:
             logger.debug("File already in buffer, skipping!")
 
-    def ensure_file_in_inbox(self, filename, checksum, conn):
+    def ensure_file_in_inbox(self, filename, checksum, remote_driver):
 	logger.debug("Ensuring file in inbox: %s" % filename)
         src = os.path.join(FORAGER_BUFFER, checksum)
         dst = FORMICARY_PATH + '/inbox' + filename
-        ensure_directory(os.path.dirname(dst), conn)
-        if not conn.modules.os.path.isfile(dst) or calculate_checksum(dst, conn) != checksum:
+
+        remote_driver.ensure_parent_directory(dst)
+        if not remote_driver.isfile(dst) or remote_driver.calculate_checksum(dst) != checksum:
 	    logger.debug("Copying file to inbox")
-	    local = open(src)
-	    remote = conn.builtin.open(dst, "w")
-	    copyfileobj(local, remote)
+            remote_driver.upload(src, dst)
 	else:
 	    logger.debug("File already in inbox, skipping!")

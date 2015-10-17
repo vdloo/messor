@@ -18,6 +18,7 @@ def list_all_files(directory, conn=None):
 def list_directories(directory, conn=None):
     os_module = conn.modules.os if conn else os
     filter_directories = lambda dr: os_module.path.isdir(os.path.join(directory, dr))
+    print 'done listing directories'
     return filter(filter_directories, os_module.listdir(directory))
 
 def _calculate_checksum(path):

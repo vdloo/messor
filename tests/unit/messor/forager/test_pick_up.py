@@ -3,7 +3,7 @@ from mock import patch, call, Mock
 
 from messor.settings import FORMICARY_PATH, FORAGER_BUFFER, PICKUP_HOSTS
 from messor.forager.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
-    list_all_files_for_host, build_file_index, process_file, create_host_buffer, \
+    build_file_index, process_file, create_host_buffer, \
     sync_outbox_host_to_buffer, process_host
 
 class TestProcessFile(TestCase):
