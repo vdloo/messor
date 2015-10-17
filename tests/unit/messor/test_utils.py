@@ -163,13 +163,21 @@ class TestCalculateChecksum(TestCase):
         file_hash.hexdigest.assert_called_once_with()
         self.assertEqual(ret, file_hash.hexdigest.return_value)
 
-    def test_calculate_checksum_uses_conn_if_specified(self):
+    def test_calculate_checksum_defines_calculate_checksum_function_in_remote_namespace_if_conn_specified(self):
         conn = MagicMock()
 
-        _calculate_checksum('/some/path/file.txt', conn)
+        calculate_checksum('/some/path/file.txt', conn)
 
-        conn.builtin.open.assert_called_once_with('/some/path/file.txt', 'rb')
+        self.assertEqual(2, len(conn.execute.mock_calls))
 
+    def test_calculate_checksum_uses__calculate_checksum_from_remote_namespace_if_conn_specified(self):
+        conn = MagicMock()
+        mock_calc = Mock()
+        conn.namespace = {'_calculate_checksum': mock_calc}
+
+        calculate_checksum('/some/path/file.txt', conn)
+
+        mock_calc.assert_called_once_with('/some/path/file.txt')
 
 class TestEnsureDirectory(TestCase):
     def setUp(self):

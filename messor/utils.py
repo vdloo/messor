@@ -1,4 +1,6 @@
 import os
+import inspect
+import string
 import hashlib
 from operator import itemgetter
 
@@ -16,20 +18,25 @@ def list_all_files(directory, conn=None):
 def list_directories(directory, conn=None):
     os_module = conn.modules.os if conn else os
     filter_directories = lambda dr: os_module.path.isdir(os.path.join(directory, dr))
+    print 'done listing directories'
     return filter(filter_directories, os_module.listdir(directory))
 
-def _calculate_checksum(path, conn):
+def _calculate_checksum(path):
     filehash = hashlib.md5() 
-    with (conn.builtin.open(path, 'rb') if conn else open(path, 'rb')) as f:
+    with open(path, 'rb') as f:
         buf = f.read()
         while len(buf) > 0:
-    	    filehash.update(buf)
+            filehash.update(buf)
             buf = f.read(65536)
         return filehash.hexdigest()
 
 def calculate_checksum(path, conn=None):
-    callback = [_calculate_checksum, (path, conn)]
-    return conn.modules.__builtin__.apply(*callback) if conn else apply(*callback) 
+    if conn:
+	conn.execute('import hashlib')
+        conn.execute(string.join(inspect.getsourcelines(_calculate_checksum)[0]))
+        return conn.namespace['_calculate_checksum'](path)
+    else: 
+        return _calculate_checksum(path)
 
 def ensure_directory(directory, conn=None):
     if not (conn.modules.os.path.exists(directory) if conn else os.path.exists(directory)):
