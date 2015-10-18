@@ -142,55 +142,26 @@ class TestListBufferHosts(TestCase):
 
 class TestProcessHost(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.drop_off.SshMachine')
-        self.addCleanup(patcher.stop)
-        self.sshmachine = patcher.start()
+	patcher = patch('messor.forager.drop_off.SshDriver')
+	self.addCleanup(patcher.stop)
+	self.sshdriver = patcher.start()
 
-        patcher = patch('messor.forager.drop_off.DeployedServer')
-        self.addCleanup(patcher.stop)
-        self.deployedserver = patcher.start()
+	patcher = patch('messor.forager.drop_off.sync_to_inbox')
+	self.addCleanup(patcher.stop)
+	self.sync_to_inbox = patcher.start()
 
-        self.conn = self.deployedserver.return_value.classic_connect.return_value
-
-        patcher = patch('messor.forager.drop_off.sync_to_inbox')
-        self.addCleanup(patcher.stop)
-        self.sync_to_inbox = patcher.start()
-
-
-    def test_process_host_connects_to_remote(self):
+    def test_process_host_instantiates_ssh_driver(self):
         process_host('testhost')
 
-        self.sshmachine.assert_called_once_with('testhost')
-
-    def test_process_host_deploys_server(self):
-        process_host('testhost')
-
-        self.deployedserver.assert_called_once_with(self.sshmachine.return_value)
-
-    def test_process_host_gets_connection(self):
-        process_host('testhost')
-
-        self.deployedserver.return_value.classic_connect.assert_called_once_with()
-
-    def test_process_host_pings_connection(self):
-        process_host('testhost')
-
-        self.conn.ping.assert_called_once_with()
+        self.sshdriver.assert_called_once_with('testhost')
 
     def test_process_host_syncs_to_inbox(self):
         process_host('testhost')
 
-        self.sync_to_inbox.assert_called_once_with('testhost', self.conn)
+        self.sync_to_inbox.assert_called_once_with('testhost', self.sshdriver.return_value)
 
     def test_process_host_skips_host_if_can_not_establish_connection(self):
-        self.sshmachine.side_effect = EOFError
-
-        process_host('testhost')
-
-        self.assertEqual(0, len(self.sync_to_inbox.mock_calls))
-
-    def test_process_host_skips_host_if_can_not_ping_host_rpyc_server(self):
-        self.conn.ping.side_effect = EOFError
+        self.sshdriver.side_effect = EOFError
 
         process_host('testhost')
 

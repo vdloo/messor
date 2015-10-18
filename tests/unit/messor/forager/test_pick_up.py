@@ -4,7 +4,7 @@ from mock import patch, call, Mock
 from messor.settings import FORMICARY_PATH, FORAGER_BUFFER, PICKUP_HOSTS
 from messor.forager.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
     build_file_index, process_file, create_host_buffer, \
-    sync_outbox_host_to_buffer, process_host
+    sync_outbox_host_to_buffer, process_host, list_all_files_for_outbox_host
 
 class TestProcessFile(TestCase):
     def setUp(self):
@@ -21,61 +21,53 @@ class TestProcessFile(TestCase):
 	self.ensure_reference = patcher.start()
 
 	self.file_entry = ('/some/absolute/file/path.txt', 'achecksum')
-        self.conn = Mock()
+        self.remote_driver = Mock()
 
     def test_process_file_ensures_file_in_buffer(self):
-	process_file(self.file_entry, self.conn)
+	process_file(self.file_entry, self.remote_driver)
 
-	self.ensure_file_in_buffer.assert_called_once_with(self.file_entry[0], self.file_entry[1], self.conn)
+	self.ensure_file_in_buffer.assert_called_once_with(self.file_entry[0], self.file_entry[1], self.remote_driver)
 
     def test_process_file_ensures_filename_reference(self):
-	process_file(self.file_entry, self.conn)
+	process_file(self.file_entry, self.remote_driver)
 
 	self.ensure_reference.assert_called_once_with(*self.file_entry)
 
     def test_process_file_removes_synced_file(self):
-	process_file(self.file_entry, self.conn)
+	process_file(self.file_entry, self.remote_driver)
 
-	self.conn.modules.os.remove.assert_called_once_with(self.file_entry[0])
+        self.remote_driver.remove_file.assert_called_once_with(self.file_entry[0])
 
 class TestBuildFileIndex(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.calculate_checksum')
-	self.addCleanup(patcher.stop)
-	self.calculate_checksum = patcher.start()
-        self.conn = Mock()
+        self.remote_driver = Mock()
 
     def test_build_file_index_calculates_checksums(self):
 	fake_files = ['file1.txt', 'file2.zip']
 
-	build_file_index(fake_files, self.conn)
+	build_file_index(fake_files, self.remote_driver)
 
-        expected_calls = [
-            call('file1.txt', self.conn),
-            call('file2.zip', self.conn)
-        ]
-	self.assertEqual(expected_calls, self.calculate_checksum.mock_calls)
+	self.assertEqual(map(call, fake_files), self.remote_driver.calculate_checksum.mock_calls)
 
     def test_build_file_index_returns_list_of_files_and_checksums(self):
 	fake_files = ['file3.txt', 'file4.zip']
-	mock_sums = [self.calculate_checksum.return_value, self.calculate_checksum.return_value]
+	mock_sums = [Mock(), Mock()]
+        self.remote_driver.calculate_checksum.side_effect = mock_sums
 
-	ret = build_file_index(fake_files, self.conn)
+	ret = build_file_index(fake_files, self.remote_driver)
 
 	self.assertEqual(zip(fake_files, mock_sums), ret)
 
-class TestListAllFilesForHost(TestCase):
+class TestListAllFilesOutboxForHost(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.list_all_files')
-	self.addCleanup(patcher.stop)
-	self.list_all_files = patcher.start()
-        self.conn = Mock()
+        self.remote_driver = Mock()
 
     def test_list_all_files_for_host_lists_all_files(self):
-	ret = list_all_files_for_host('testhost', self.conn)
+	ret = list_all_files_for_outbox_host('testhost', self.remote_driver)
 
-	self.list_all_files.assert_called_once_with(FORMICARY_PATH + '/outbox/' + 'testhost', self.conn)
-	self.assertEqual(self.list_all_files.return_value, ret)
+        self.remote_driver.list_all_files(FORMICARY_PATH + '/outbox/' + 'testhost')
+        self.assertEqual(ret, self.remote_driver.list_all_files.return_value)
+
 
 class TestCreateHostBuffer(TestCase):
     def setUp(self):
@@ -111,53 +103,50 @@ class TestSyncOutboxHostToBuffer(TestCase):
 	self.addCleanup(patcher.stop)
 	self.build_file_index = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.list_all_files_for_host')
+	patcher = patch('messor.forager.pick_up.list_all_files_for_outbox_host')
 	self.addCleanup(patcher.stop)
 	self.list_all_files_for_host = patcher.start()
 
-        self.conn = Mock()
+        self.remote_driver = Mock()
 
     def test_sync_outbox_host_to_buffer_lists_all_files_for_host(self):
-        sync_outbox_host_to_buffer('testhost', self.conn)
+        sync_outbox_host_to_buffer('testhost', self.remote_driver)
 
-	self.list_all_files_for_host.assert_called_once_with('testhost', self.conn)
+	self.list_all_files_for_host.assert_called_once_with('testhost', self.remote_driver)
 
     def test_sync_outbox_host_to_buffer_builds_file_index(self):
-        sync_outbox_host_to_buffer('testhost', self.conn)
+        sync_outbox_host_to_buffer('testhost', self.remote_driver)
 
-	self.build_file_index.assert_called_once_with(self.list_all_files_for_host.return_value, self.conn)
+	self.build_file_index.assert_called_once_with(self.list_all_files_for_host.return_value, self.remote_driver)
 
     def test_sync_outbox_host_to_buffer_creates_buffer_directory_for_host(self):
-        sync_outbox_host_to_buffer('testhost', self.conn)
+        sync_outbox_host_to_buffer('testhost', self.remote_driver)
 
         self.create_host_buffer.assert_called_once_with('testhost')
 
     def test_sync_outbox_host_to_buffer_processes_all_files_for_host(self):
 	self.build_file_index.return_value = ['file1.txt', 'file2.txt', 'file3.txt']
 
-        sync_outbox_host_to_buffer('testhost', self.conn)
+        sync_outbox_host_to_buffer('testhost', self.remote_driver)
 
         expected_calls = [
-            call('file1.txt', self.conn),
-            call('file2.txt', self.conn),
-            call('file3.txt', self.conn)
+            call('file1.txt', self.remote_driver),
+            call('file2.txt', self.remote_driver),
+            call('file3.txt', self.remote_driver)
         ]
 	self.assertEqual(expected_calls, self.proccess_file.mock_calls)
 
 
 class TestListOutboxHosts(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.list_directories')
-	self.addCleanup(patcher.stop)
-	self.list_dirs = patcher.start()
-        self.conn = Mock()
+        self.remote_driver = Mock()
 
     def test_list_outbox_hosts_returns_list_of_directories(self):
-	ret = list_outbox_hosts(self.conn)
+	ret = list_outbox_hosts(self.remote_driver)
 
-	self.list_dirs.assert_called_once_with(FORMICARY_PATH + '/outbox/', self.conn)
-	self.assertEqual(ret, self.list_dirs.return_value)
+        self.remote_driver.list_directories.assert_called_once_with(FORMICARY_PATH + '/outbox/')
 
+        self.assertEqual(ret, self.remote_driver.list_directories.return_value)
 
 class TestSyncToBuffer(TestCase):
     def setUp(self):
@@ -190,55 +179,26 @@ class TestSyncToBuffer(TestCase):
 
 class TestProcessHost(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.pick_up.SshMachine')
+        patcher = patch('messor.forager.pick_up.SshDriver')
         self.addCleanup(patcher.stop)
-        self.sshmachine = patcher.start()
-
-        patcher = patch('messor.forager.pick_up.DeployedServer')
-        self.addCleanup(patcher.stop)
-        self.deployedserver = patcher.start()
-
-        self.conn = self.deployedserver.return_value.classic_connect.return_value
+        self.sshdriver = patcher.start()
 
         patcher = patch('messor.forager.pick_up.sync_to_buffer')
         self.addCleanup(patcher.stop)
         self.sync_to_buffer = patcher.start()
 
-
-    def test_process_host_connects_to_remote(self):
+    def test_process_host_instantiates_ssh_driver(self):
         process_host('testhost')
 
-        self.sshmachine.assert_called_once_with('testhost')
+        self.sshdriver.assert_called_once_with('testhost')
 
-    def test_process_host_deploys_server(self):
+    def test_process_host_syncs_to_buffer(self):
         process_host('testhost')
 
-        self.deployedserver.assert_called_once_with(self.sshmachine.return_value)
-
-    def test_process_host_gets_connection(self):
-        process_host('testhost')
-
-        self.deployedserver.return_value.classic_connect.assert_called_once_with()
-
-    def test_process_host_pings_connection(self):
-        process_host('testhost')
-
-        self.conn.ping.assert_called_once_with()
-
-    def test_process_host_syncs_to_inbox(self):
-        process_host('testhost')
-
-        self.sync_to_buffer.assert_called_once_with('testhost', self.conn)
+        self.sync_to_buffer.assert_called_once_with('testhost', self.sshdriver.return_value)
 
     def test_process_host_skips_host_if_can_not_establish_connection(self):
-        self.sshmachine.side_effect = EOFError
-
-        process_host('testhost')
-
-        self.assertEqual(0, len(self.sync_to_buffer.mock_calls))
-
-    def test_process_host_skips_host_if_can_not_ping_host_rpyc_server(self):
-        self.conn.ping.side_effect = EOFError
+        self.sshdriver.side_effect = EOFError
 
         process_host('testhost')
 
