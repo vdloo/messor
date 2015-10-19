@@ -47,4 +47,4 @@ def drop_off():
     logger.debug("Initiating dropoff")
     hosts = list_buffer_hosts()
     map(process_host, hosts)
-    logger.debug("Done syncing all buffer host directories to inbox")
+    logger.debug("Done syncing all available buffer host directories to inbox")
