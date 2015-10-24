@@ -1,11 +1,11 @@
 from unittest import TestCase
 from mock import patch
 
-from bin.forager_dropoff import main
+from bin.drop_off import main
 
-class TestForagerDropoff(TestCase):
+class TestDropoff(TestCase):
     def setUp(self):
-        patcher = patch('bin.forager_dropoff.drop_off')
+        patcher = patch('bin.drop_off.drop_off')
         self.addCleanup(patcher.stop)
         self.drop_off = patcher.start()
 

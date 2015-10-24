@@ -1,11 +1,11 @@
 from unittest import TestCase
 from mock import patch
 
-from bin.forager_pickup import main
+from bin.pick_up import main
 
-class TestForagerPickup(TestCase):
+class TestPickup(TestCase):
     def setUp(self):
-	patcher = patch('bin.forager_pickup.pick_up')
+	patcher = patch('bin.pick_up.pick_up')
 	self.addCleanup(patcher.stop)
 	self.pick_up = patcher.start()
 

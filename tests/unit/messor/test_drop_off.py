@@ -2,7 +2,7 @@ from unittest import TestCase
 from mock import patch, call, Mock
 
 from messor.settings import FORAGER_BUFFER
-from messor.forager.drop_off import drop_off, list_buffer_hosts, sync_to_inbox, \
+from messor.drop_off import drop_off, list_buffer_hosts, sync_to_inbox, \
     flush_buffer, process_file, process_host
 
 class TestProcessFile(TestCase):
@@ -11,7 +11,7 @@ class TestProcessFile(TestCase):
         self.addCleanup(patcher.stop)
         self.ensure_file_in_inbox = patcher.start()
 
-        patcher = patch('messor.forager.drop_off.os')
+        patcher = patch('messor.drop_off.os')
         self.addCleanup(patcher.stop)
         self.mock_os = patcher.start()
         self.mock_os.path.join.return_value = 'hosts_path'
@@ -36,7 +36,7 @@ class TestProcessFile(TestCase):
 
 class TestFlushBuffer(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.drop_off.list_buffer_hosts')
+        patcher = patch('messor.drop_off.list_buffer_hosts')
         self.addCleanup(patcher.stop)
         self.list_buffer_hosts = patcher.start()
         self.fake_hosts = ['host1', 'host2', 'host3']
@@ -82,11 +82,11 @@ class TestSyncToInbox(TestCase):
         self.mock_file_entries = [Mock(), Mock(), Mock()]
         self.file_index_for_host.return_value = self.mock_file_entries
 
-        patcher = patch('messor.forager.drop_off.process_file')
+        patcher = patch('messor.drop_off.process_file')
         self.addCleanup(patcher.stop)
         self.process_file = patcher.start()
 
-        patcher = patch('messor.forager.drop_off.flush_buffer')
+        patcher = patch('messor.drop_off.flush_buffer')
         self.addCleanup(patcher.stop)
         self.flush_buffer = patcher.start()
 
@@ -115,11 +115,11 @@ class TestSyncToInbox(TestCase):
 
 class TestListBufferHosts(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.drop_off.os')
+        patcher = patch('messor.drop_off.os')
         self.addCleanup(patcher.stop)
         self.mock_os = patcher.start()
 
-        patcher = patch('messor.forager.drop_off.list_directories')
+        patcher = patch('messor.drop_off.list_directories')
         self.addCleanup(patcher.stop)
         self.list_directories = patcher.start()
 
@@ -142,11 +142,11 @@ class TestListBufferHosts(TestCase):
 
 class TestProcessHost(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.drop_off.SshDriver')
+	patcher = patch('messor.drop_off.SshDriver')
 	self.addCleanup(patcher.stop)
 	self.sshdriver = patcher.start()
 
-	patcher = patch('messor.forager.drop_off.sync_to_inbox')
+	patcher = patch('messor.drop_off.sync_to_inbox')
 	self.addCleanup(patcher.stop)
 	self.sync_to_inbox = patcher.start()
 
@@ -170,13 +170,13 @@ class TestProcessHost(TestCase):
 
 class TestDropOff(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.drop_off.list_buffer_hosts')
+        patcher = patch('messor.drop_off.list_buffer_hosts')
         self.addCleanup(patcher.stop)
         self.list_buffer_hosts = patcher.start()
         self.fake_hosts = ['host1', 'host2']
         self.list_buffer_hosts.return_value = self.fake_hosts
 
-        patcher = patch('messor.forager.drop_off.process_host')
+        patcher = patch('messor.drop_off.process_host')
         self.addCleanup(patcher.stop)
         self.process_host = patcher.start()
 

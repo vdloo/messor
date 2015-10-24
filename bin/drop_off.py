@@ -3,7 +3,7 @@ import logging
 import argparse
 
 from messor.log import setup_logging
-from messor.forager.drop_off import drop_off
+from messor.drop_off import drop_off
 
 def main():
     drop_off()

@@ -3,7 +3,7 @@ import logging
 import argparse
 
 from messor.log import setup_logging
-from messor.forager.pick_up import pick_up
+from messor.pick_up import pick_up
 
 def main():
     pick_up()

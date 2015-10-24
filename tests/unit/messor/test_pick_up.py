@@ -2,21 +2,21 @@ from unittest import TestCase
 from mock import patch, call, Mock
 
 from messor.settings import FORMICARY_PATH, FORAGER_BUFFER, PICKUP_HOSTS
-from messor.forager.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
+from messor.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
     build_file_index, process_file, create_host_buffer, \
     sync_outbox_host_to_buffer, process_host, list_all_files_for_outbox_host
 
 class TestProcessFile(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.os')
+	patcher = patch('messor.pick_up.os')
 	self.addCleanup(patcher.stop)
 	self.mock_os = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.ChecksumFilesDriver.ensure_file_in_buffer')
+	patcher = patch('messor.pick_up.ChecksumFilesDriver.ensure_file_in_buffer')
 	self.addCleanup(patcher.stop)
 	self.ensure_file_in_buffer = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.ChecksumFilesDriver.ensure_filename_reference')
+	patcher = patch('messor.pick_up.ChecksumFilesDriver.ensure_filename_reference')
 	self.addCleanup(patcher.stop)
 	self.ensure_reference = patcher.start()
 
@@ -71,11 +71,11 @@ class TestListAllFilesOutboxForHost(TestCase):
 
 class TestCreateHostBuffer(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.ensure_directory')
+	patcher = patch('messor.pick_up.ensure_directory')
 	self.addCleanup(patcher.stop)
 	self.ensure = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.os')
+	patcher = patch('messor.pick_up.os')
 	self.addCleanup(patcher.stop)
 	self.mock_os = patcher.start()
 
@@ -91,19 +91,19 @@ class TestCreateHostBuffer(TestCase):
 
 class TestSyncOutboxHostToBuffer(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.process_file')
+	patcher = patch('messor.pick_up.process_file')
 	self.addCleanup(patcher.stop)
 	self.proccess_file = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.create_host_buffer')
+	patcher = patch('messor.pick_up.create_host_buffer')
 	self.addCleanup(patcher.stop)
 	self.create_host_buffer = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.build_file_index')
+	patcher = patch('messor.pick_up.build_file_index')
 	self.addCleanup(patcher.stop)
 	self.build_file_index = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.list_all_files_for_outbox_host')
+	patcher = patch('messor.pick_up.list_all_files_for_outbox_host')
 	self.addCleanup(patcher.stop)
 	self.list_all_files_for_host = patcher.start()
 
@@ -150,12 +150,12 @@ class TestListOutboxHosts(TestCase):
 
 class TestSyncToBuffer(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.pick_up.list_outbox_hosts')
+        patcher = patch('messor.pick_up.list_outbox_hosts')
         self.addCleanup(patcher.stop)
         self.list_outbox_hosts = patcher.start()
         self.list_outbox_hosts.return_value = ['host1', 'host2', 'host3']
 
-        patcher = patch('messor.forager.pick_up.sync_outbox_host_to_buffer')
+        patcher = patch('messor.pick_up.sync_outbox_host_to_buffer')
         self.addCleanup(patcher.stop)
         self.sync_outbox_host_to_buffer = patcher.start()
 
@@ -179,11 +179,11 @@ class TestSyncToBuffer(TestCase):
 
 class TestProcessHost(TestCase):
     def setUp(self):
-        patcher = patch('messor.forager.pick_up.SshDriver')
+        patcher = patch('messor.pick_up.SshDriver')
         self.addCleanup(patcher.stop)
         self.sshdriver = patcher.start()
 
-        patcher = patch('messor.forager.pick_up.sync_to_buffer')
+        patcher = patch('messor.pick_up.sync_to_buffer')
         self.addCleanup(patcher.stop)
         self.sync_to_buffer = patcher.start()
 
@@ -207,11 +207,11 @@ class TestProcessHost(TestCase):
 
 class TestPickup(TestCase):
     def setUp(self):
-	patcher = patch('messor.forager.pick_up.list_outbox_hosts')
+	patcher = patch('messor.pick_up.list_outbox_hosts')
 	self.addCleanup(patcher.stop)
 	self.list_outbox_hosts = patcher.start()
 
-	patcher = patch('messor.forager.pick_up.process_host')
+	patcher = patch('messor.pick_up.process_host')
 	self.addCleanup(patcher.stop)
 	self.process_host = patcher.start()
 
