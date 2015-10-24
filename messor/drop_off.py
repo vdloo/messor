@@ -3,7 +3,7 @@ import logging
 from itertools import chain
 
 from messor.utils import list_directories
-from messor.settings import FORAGER_BUFFER
+from messor.settings import MESSOR_BUFFER
 from messor.drivers.reference import ChecksumFilesDriver
 from messor.drivers.remote import SshDriver
 
@@ -15,7 +15,7 @@ def process_file(file_entry, remote_driver):
     filename, checksum = file_entry
     logger.debug("Processing file %s" % filename)
     reference_driver.ensure_file_in_inbox(filename, checksum, remote_driver)
-    reference_file = os.path.join(FORAGER_BUFFER, 'hosts') + filename
+    reference_file = os.path.join(MESSOR_BUFFER, 'hosts') + filename
     os.remove(reference_file)
 
 def flush_buffer():
@@ -40,7 +40,7 @@ def process_host(host):
 
 def list_buffer_hosts():
     logger.debug("Generating a list of buffer host directories")
-    buffer_path = os.path.join(FORAGER_BUFFER, 'hosts')
+    buffer_path = os.path.join(MESSOR_BUFFER, 'hosts')
     return list_directories(buffer_path)
 
 def drop_off():

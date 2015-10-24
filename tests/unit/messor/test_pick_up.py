@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import patch, call, Mock
 
-from messor.settings import FORMICARY_PATH, FORAGER_BUFFER, PICKUP_HOSTS
+from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
     build_file_index, process_file, create_host_buffer, \
     sync_outbox_host_to_buffer, process_host, list_all_files_for_outbox_host
@@ -65,7 +65,7 @@ class TestListAllFilesOutboxForHost(TestCase):
     def test_list_all_files_for_host_lists_all_files(self):
 	ret = list_all_files_for_outbox_host('testhost', self.remote_driver)
 
-        self.remote_driver.list_all_files(FORMICARY_PATH + '/outbox/' + 'testhost')
+        self.remote_driver.list_all_files(MESSOR_PATH + '/outbox/' + 'testhost')
         self.assertEqual(ret, self.remote_driver.list_all_files.return_value)
 
 
@@ -82,7 +82,7 @@ class TestCreateHostBuffer(TestCase):
     def test_create_host_buffer_joins_host_to_buffer_path(self):
         create_host_buffer('testhost')
 
-        self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'hosts', 'testhost')
+        self.mock_os.path.join.assert_called_once_with(MESSOR_BUFFER, 'hosts', 'testhost')
 
     def test_create_host_buffer_creates_host_buffer_directory(self):
         create_host_buffer('testhost')
@@ -144,7 +144,7 @@ class TestListOutboxHosts(TestCase):
     def test_list_outbox_hosts_returns_list_of_directories(self):
 	ret = list_outbox_hosts(self.remote_driver)
 
-        self.remote_driver.list_directories.assert_called_once_with(FORMICARY_PATH + '/outbox/')
+        self.remote_driver.list_directories.assert_called_once_with(MESSOR_PATH + '/outbox/')
 
         self.assertEqual(ret, self.remote_driver.list_directories.return_value)
 

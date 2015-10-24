@@ -2,7 +2,7 @@ from unittest import TestCase
 from mock import patch, call, Mock
 
 from messor.drivers.reference import ChecksumFilesDriver
-from messor.settings import FORAGER_BUFFER, FORMICARY_PATH
+from messor.settings import MESSOR_BUFFER, MESSOR_PATH
 
 driver = ChecksumFilesDriver()
 
@@ -15,7 +15,7 @@ class TestPurgeFileInBuffer(TestCase):
     def test_purge_file_in_buffer_joins_buffer_and_checksum(self):
         driver.purge_file_in_buffer('checksum1')
 
-        self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'checksum1')
+        self.mock_os.path.join.assert_called_once_with(MESSOR_BUFFER, 'checksum1')
 
     def test_purge_file_in_buffer_removes_file(self):
         driver.purge_file_in_buffer('checksum1')
@@ -36,7 +36,7 @@ class TestPurgeBuffer(TestCase):
     def test_purge_buffer_lists_all_files_in_buffer(self):
         driver.purge_buffer(['1', '2', '3'])
 
-        self.list_all_files.assert_called_once_with(FORAGER_BUFFER)
+        self.list_all_files.assert_called_once_with(MESSOR_BUFFER)
 
     def test_purge_buffer_purgers_all_files_in_buffer_without_any_unresolved_reference_left(self):
         driver.purge_buffer(['2'])
@@ -59,7 +59,7 @@ class TestEnsureFileInBuffer(TestCase):
     def test_ensure_file_in_buffer_joins_path(self):
         driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.remote_driver)
 
-        self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'achecksum')
+        self.mock_os.path.join.assert_called_once_with(MESSOR_BUFFER, 'achecksum')
 
     def test_ensure_file_in_buffer_copies_file_if_dst_doesnt_exist(self):
         self.mock_os.path.isfile.return_value = False
@@ -88,9 +88,9 @@ class TestEnsureFileInBuffer(TestCase):
 @patch('messor.drivers.reference.os')
 class TestReferencePathFromFilename(TestCase):
     def test_reference_path_from_filename_creates_reference(self, os):
-	driver._reference_path_from_filename(FORMICARY_PATH + '/outbox/' + 'some/file/name.txt')
+	driver._reference_path_from_filename(MESSOR_PATH + '/outbox/' + 'some/file/name.txt')
 	
-	os.path.join.assert_called_once_with(FORAGER_BUFFER, "hosts", 'some/file/name.txt')
+	os.path.join.assert_called_once_with(MESSOR_BUFFER, "hosts", 'some/file/name.txt')
 
     def test_reference_path_returns_joined_path(self, os):
 	ret = driver._reference_path_from_filename('some/file/name.txt')

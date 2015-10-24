@@ -1,7 +1,7 @@
 from unittest import TestCase
 from mock import patch, call, Mock
 
-from messor.settings import FORAGER_BUFFER
+from messor.settings import MESSOR_BUFFER
 from messor.drop_off import drop_off, list_buffer_hosts, sync_to_inbox, \
     flush_buffer, process_file, process_host
 
@@ -26,7 +26,7 @@ class TestProcessFile(TestCase):
     def test_process_file_creates_composes_file_path(self):
         process_file(('filename', 'checksum'), self.conn)
 
-        self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'hosts')
+        self.mock_os.path.join.assert_called_once_with(MESSOR_BUFFER, 'hosts')
 
     def test_process_file_deletes_reference_file(self):
         process_file(('filename', 'checksum'), self.conn)
@@ -126,7 +126,7 @@ class TestListBufferHosts(TestCase):
     def test_list_buffer_hosts_joins_path(self):
         list_buffer_hosts()
 
-        self.mock_os.path.join.assert_called_once_with(FORAGER_BUFFER, 'hosts')
+        self.mock_os.path.join.assert_called_once_with(MESSOR_BUFFER, 'hosts')
 
     def test_list_buffer_hosts_lists_directories(self):
         list_buffer_hosts()

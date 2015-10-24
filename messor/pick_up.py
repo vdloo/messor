@@ -1,7 +1,7 @@
 import os 
 import logging
 
-from messor.settings import FORMICARY_PATH, FORAGER_BUFFER, PICKUP_HOSTS
+from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.utils import ensure_directory
 from messor.drivers.reference import ChecksumFilesDriver
 from messor.drivers.remote import SshDriver
@@ -24,17 +24,17 @@ def build_file_index(files, remote_driver):
 
 def create_host_buffer(host):
     logger.debug("Creating host buffer for host %s" % host)
-    buffer_path = os.path.join(FORAGER_BUFFER, 'hosts', host)
+    buffer_path = os.path.join(MESSOR_BUFFER, 'hosts', host)
     ensure_directory(buffer_path)
 
 def list_all_files_for_outbox_host(outbox_host, remote_driver):
     logger.debug("Generating a list of all files for host %s" % outbox_host)
-    outbox_host_path = FORMICARY_PATH + '/outbox/' + outbox_host
+    outbox_host_path = MESSOR_PATH + '/outbox/' + outbox_host
     return remote_driver.list_all_files(outbox_host_path)
 
 def list_outbox_hosts(remote_driver):
     logger.debug("Generating a list of outbox host directories")
-    outbox_path = FORMICARY_PATH + '/outbox/'
+    outbox_path = MESSOR_PATH + '/outbox/'
     return remote_driver.list_directories(outbox_path)
 
 def sync_outbox_host_to_buffer(outbox_host, remote_driver):

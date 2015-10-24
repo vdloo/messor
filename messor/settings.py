@@ -1,11 +1,10 @@
 import os 
 
-FORAGER_BUFFER = '~/buffer'
-FORMICARY_PATH = '~/messor'
-PICKUP_HOSTS_FILE = '~/.messor_pickup_hosts'
+MESSOR_PATH = '~/messor'
+MESSOR_PATH = os.path.expanduser(MESSOR_PATH)
 
-FORAGER_BUFFER = os.path.expanduser(FORAGER_BUFFER)
-FORMICARY_PATH = os.path.expanduser(FORMICARY_PATH)
+MESSOR_BUFFER = os.path.join(MESSOR_PATH, 'buffer')
+PICKUP_HOSTS_FILE = '~/.messor_pickup_hosts'
 PICKUP_HOSTS_FILE = os.path.expanduser(PICKUP_HOSTS_FILE)
 
 PICKUP_HOSTS = list(map(str.strip, open(PICKUP_HOSTS_FILE).readlines()))
