@@ -3,7 +3,8 @@ from mock import call, patch, Mock, MagicMock
 
 from messor.utils import ensure_directory, ensure_directories, \
     calculate_checksum, list_directories, list_all_files, \
-    stitch_directory_and_files, flatten_list, _calculate_checksum
+    stitch_directory_and_files, flatten_list, _calculate_checksum, \
+    path_size
 
 class TestFlattenList(TestCase):
     def test_flatten_list_flattens_list(self):
@@ -226,3 +227,36 @@ class TestEnsureDirectories(TestCase):
 
 	expected_calls = [call('dir1'), call('dir2'), call('dir3')]
 	self.assertEqual(expected_calls, mock_calls)
+
+class TestPathSize(TestCase):
+    def setUp(self):
+        patcher = patch('messor.utils.os')
+        self.addCleanup(patcher.stop)
+        self.os = patcher.start()
+
+    def test_path_size_gets_size_of_path(self):
+        path_size('somepath')
+
+        self.os.path.getsize.assert_called_once_with('somepath')
+
+    def test_path_size_lists_dir_if_path_is_dir(self):
+        self.os.path.isdir.side_effect = [True, False]
+
+        path_size('somepath')
+
+        self.os.listdir.assert_called_once_with('somepath')
+
+    def test_path_size_does_not_list_dir_if_path_is_not_dir(self):
+        self.os.path.isdir.return_value = False
+
+        path_size('somepath')
+
+        self.os.path.isdir.assert_called_once_with('somepath')
+        self.assertEqual(0, len(self.os.path.listdir.mock_calls))
+
+    def test_path_size_returns_summed_item_sizes_in_bytes(self):
+        self.os.path.getsize.return_value = 5
+        self.os.path.isdir.side_effect = [True, False]
+
+        ret = path_size('somepath')
+        self.assertEqual(ret, 5)

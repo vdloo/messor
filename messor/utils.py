@@ -45,3 +45,9 @@ def ensure_directory(directory, conn=None):
 def ensure_directories(required_directories):
     return map(ensure_directory, required_directories)
 
+def path_size(path):
+    size = os.path.getsize(path)
+    if os.path.isdir(path):
+        sub_paths = map(lambda item: os.path.join(path, item), os.listdir(path))
+        size += sum(map(path_size, sub_paths))
+    return size
