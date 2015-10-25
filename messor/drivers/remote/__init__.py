@@ -43,3 +43,6 @@ class SshDriver(object):
 
     def remove_file(self, filename):
 	self.rpyc_conn.modules.os.remove(filename)
+
+    def file_size(self, filename):
+	return self.rpyc_conn.modules.os.path.getsize(filename)

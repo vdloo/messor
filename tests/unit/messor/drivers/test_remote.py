@@ -76,3 +76,13 @@ class TestSshDriver(TestCase):
         self.driver.remove_file('filename')
 
         self.driver.rpyc_conn.modules.os.remove.assert_called_once_with('filename')
+
+    def test_ssh_driver_file_size_calls_getsize_on_remote(self):
+	self.driver.file_size('filename')
+
+	self.driver.rpyc_conn.modules.os.path.getsize.assert_called_once_with('filename')
+
+    def test_ssh_driver_file_size_returns_file_size_from_file_on_remote(self):
+	ret = self.driver.file_size('filename')
+
+	self.assertEqual(ret, self.driver.rpyc_conn.modules.os.path.getsize.return_value)
