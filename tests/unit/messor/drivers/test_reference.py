@@ -2,7 +2,7 @@ from unittest import TestCase
 from mock import patch, call, Mock
 
 from messor.drivers.reference import ChecksumFilesDriver
-from messor.settings import MESSOR_BUFFER, MESSOR_PATH
+from messor.settings import MESSOR_BUFFER, MESSOR_PATH, LIMIT_IN_BYTES
 
 driver = ChecksumFilesDriver()
 
@@ -22,12 +22,153 @@ class TestPurgeFileInBuffer(TestCase):
         
         self.mock_os.remove(self.mock_os.path.join.return_value)
 
+    def test_purge_file_in_buffer_doesnt_remove_directory(self):
+        self.mock_os.path.isdir.return_value = True
+
+        driver.purge_file_in_buffer('checksum1')
+
+        self.assertEqual(0, len(self.mock_os.remove.mock_calls))
+
+
+class TestEnoughSpace(TestCase):
+    def setUp(self):
+        patcher = patch('messor.drivers.reference.path_size')
+        self.addCleanup(patcher.stop)
+        self.path_size = patcher.start()
+        self.path_size.return_value = 9
+
+        self.remote_driver = Mock()
+        self.remote_driver.file_size.return_value = 1
+
+    def test_enough_space_gets_path_size_of_buffer(self):
+        driver.enough_space(('filename', 'achecksum'), self.remote_driver)
+
+        self.path_size.assert_called_once_with(MESSOR_BUFFER)
+
+    def test_enough_space_gets_remote_file_size(self):
+        driver.enough_space(('filename', 'achecksum'), self.remote_driver)
+
+        self.remote_driver.file_size.assert_called_once_with('filename')
+
+    def test_enough_space_left_returns_false_if_not_enough_space_left(self):
+        self.remote_driver.file_size.return_value = LIMIT_IN_BYTES
+
+        ret = driver.enough_space(('filename', 'achecksum'), self.remote_driver)
+
+        self.assertFalse(ret)
+
+    def test_enough_space_left_returns_true_if_enough_space_left(self):
+        self.remote_driver.file_size.return_value = LIMIT_IN_BYTES - 10
+
+        ret = driver.enough_space(('filename', 'achecksum'), self.remote_driver)
+
+        self.assertTrue(ret)
+        
+
+class TestFileFitsInBuffer(TestCase):
+    def setUp(self):
+        patcher = patch('messor.drivers.reference.ChecksumFilesDriver.file_in_buffer')
+        self.addCleanup(patcher.stop)
+        self.file_in_buffer = patcher.start()
+
+        patcher = patch('messor.drivers.reference.ChecksumFilesDriver.enough_space')
+        self.addCleanup(patcher.stop)
+        self.enough_space = patcher.start()
+
+        self.remote_driver = Mock()
+
+    def test_file_fits_in_buffer_is_true_if_file_in_buffer_already(self):
+        self.file_in_buffer.return_value = True
+        self.enough_space.return_value = False
+
+        ret = driver.file_fits_in_buffer(('filename', 'achecksum'), self.remote_driver)
+
+        self.assertTrue(ret)
+
+    def test_file_fits_in_buffer_is_true_if_file_not_in_buffer_but_enough_space(self):
+        self.file_in_buffer.return_value = False
+        self.enough_space.return_value = True
+
+        ret = driver.file_fits_in_buffer(('filename', 'achecksum'), self.remote_driver)
+
+        self.assertTrue(ret)
+
+    def test_file_fits_in_buffer_is_false_if_not_in_buffer_already_and_not_enough_space(self):
+        self.file_in_buffer.return_value = False
+        self.enough_space.return_value = False
+
+        ret = driver.file_fits_in_buffer(('filename', 'achecksum'), self.remote_driver)
+
+        self.assertFalse(ret)
+
+    def test_file_fits_in_buffer_calls_file_in_buffer_with_right_parameters(self):
+        driver.file_fits_in_buffer(('filename', 'achecksum'), self.remote_driver)
+
+        self.file_in_buffer.assert_called_once_with('filename', 'achecksum')
+
+    def test_file_fits_in_buffer_calls_enough_space_with_right_parameters(self):
+        self.file_in_buffer.return_value = False
+
+        driver.file_fits_in_buffer(('filename', 'achecksum'), self.remote_driver)
+
+        self.enough_space.assert_called_once_with(('filename', 'achecksum'), self.remote_driver)
+
+class TestFileInBuffer(TestCase):
+    def setUp(self):
+        patcher = patch('messor.drivers.reference.os')
+        self.addCleanup(patcher.stop)
+        self.os = patcher.start()
+    
+        patcher = patch('messor.drivers.reference.calculate_checksum')
+        self.addCleanup(patcher.stop)
+        self.calculate_checksum = patcher.start()
+    
+    def test_file_in_buffer_joins_path(self):
+        driver.file_in_buffer('filename', 'achecksum')
+
+        self.os.path.join.assert_called_once_with(MESSOR_BUFFER, 'achecksum')
+
+    def test_file_in_buffer_is_true_if_is_file_and_checksum_matches(self):
+        self.os.path.isfile.return_value = True
+        self.calculate_checksum.return_value = 'achecksum'
+
+        ret = driver.file_in_buffer('filename', 'achecksum')
+
+        self.assertTrue(ret)
+
+    def test_file_in_buffer_is_false_if_not_file_but_checksum_matches(self):
+        self.os.path.isfile.return_value = False
+        self.calculate_checksum.return_value = 'achecksum'
+
+        ret = driver.file_in_buffer('filename', 'achecksum')
+
+        self.assertFalse(ret)
+
+    def test_file_in_buffer_is_false_if_is_file_but_checksum_does_not_match(self):
+        self.os.path.isfile.return_value = True
+        self.calculate_checksum.return_value = 'someotherchecksum'
+
+        ret = driver.file_in_buffer('filename', 'achecksum')
+
+        self.assertFalse(ret)
+
+    def test_file_in_buffer_calls_isfile_with_dst(self):
+        driver.file_in_buffer('filename', 'achecksum')
+
+        self.os.path.isfile.assert_called_once_with(self.os.path.join.return_value)
+
+    def test_file_in_buffer_compares_checksum_of_right_file(self):
+        driver.file_in_buffer('filename', 'achecksum')
+
+        self.calculate_checksum.assert_called_once_with(self.os.path.join.return_value)
+
+
 class TestPurgeBuffer(TestCase):
     def setUp(self):
-        patcher = patch('messor.drivers.reference.list_all_files')
+        patcher = patch('messor.drivers.reference.os')
         self.addCleanup(patcher.stop)
-        self.list_all_files = patcher.start()
-        self.list_all_files.return_value = ['1', '2', '3']
+        self.os = patcher.start()
+        self.os.listdir.return_value = ['1', '2', '3']
 
         patcher = patch('messor.drivers.reference.ChecksumFilesDriver.purge_file_in_buffer')
         self.addCleanup(patcher.stop)
@@ -36,7 +177,7 @@ class TestPurgeBuffer(TestCase):
     def test_purge_buffer_lists_all_files_in_buffer(self):
         driver.purge_buffer(['1', '2', '3'])
 
-        self.list_all_files.assert_called_once_with(MESSOR_BUFFER)
+        self.os.listdir.assert_called_once_with(MESSOR_BUFFER)
 
     def test_purge_buffer_purgers_all_files_in_buffer_without_any_unresolved_reference_left(self):
         driver.purge_buffer(['2'])
@@ -59,7 +200,10 @@ class TestEnsureFileInBuffer(TestCase):
     def test_ensure_file_in_buffer_joins_path(self):
         driver.ensure_file_in_buffer('somefile.txt', 'achecksum', self.remote_driver)
 
-        self.mock_os.path.join.assert_called_once_with(MESSOR_BUFFER, 'achecksum')
+        self.mock_os.path.join.has_calls(
+                call(MESSOR_BUFFER, 'achecksum'),
+                call(MESSOR_BUFFER, 'achecksum')
+        )
 
     def test_ensure_file_in_buffer_copies_file_if_dst_doesnt_exist(self):
         self.mock_os.path.isfile.return_value = False
@@ -85,6 +229,61 @@ class TestEnsureFileInBuffer(TestCase):
         self.assertEqual(0, len(self.remote_driver.download.mock_calls))
 
 
+class TestEnsureFileInInbox(TestCase):
+    def setUp(self):
+        patcher = patch('messor.drivers.reference.os')
+        self.addCleanup(patcher.stop)
+        self.os = patcher.start()
+        self.src = self.os.path.join.return_value
+        self.dst = MESSOR_PATH + '/inbox' + 'filename'
+
+        self.remote_driver = Mock()
+        self.remote_driver.isfile.return_value = False
+        self.remote_driver.calculate_checksum.return_value = 'someotherchecksum'
+
+    def test_ensure_file_in_inbox_joins_path(self):
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+
+        self.os.path.join.assert_called_once_with(MESSOR_BUFFER, 'achecksum')
+
+    def test_ensure_file_in_inbox_ensures_parent_directory(self):
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+
+        self.remote_driver.ensure_parent_directory_assert_called_once_with(self.src)
+
+    def test_ensure_file_in_inbox_checks_if_dst_isfile(self):
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+
+        self.remote_driver.isfile.assert_called_once_with(self.dst)
+
+    def test_ensure_file_in_inbox_calculates_checksum_of_dst_if_file_already_exists(self):
+        self.remote_driver.isfile.return_value = True
+
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+
+        self.remote_driver.calculate_checksum.assert_called_once_with(self.dst)
+
+    def test_ensure_file_in_inbox_uploads_file_if_does_not_exists(self):
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+
+        self.remote_driver.upload.assert_called_once_with(self.src, self.dst)
+
+    def test_ensure_file_in_inbox_doesnt_upload_file_if_checksum_matches(self):
+        self.remote_driver.isfile.return_value = True
+        self.remote_driver.calculate_checksum.return_value = 'achecksum'
+
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+
+        self.assertEqual(0, len(self.remote_driver.upload.mock_calls))
+
+    def test_ensure_file_in_inbox_uploads_file_if_not_exists_and_checksum_does_not_match(self):
+        self.remote_driver.calculate_checksum.return_value = 'achecksum'
+
+        driver.ensure_file_in_inbox('filename', 'achecksum', self.remote_driver)
+        
+        self.remote_driver.upload.assert_called_once_with(self.src, self.dst)
+
+
 @patch('messor.drivers.reference.os')
 class TestReferencePathFromFilename(TestCase):
     def test_reference_path_from_filename_creates_reference(self, os):
@@ -96,6 +295,7 @@ class TestReferencePathFromFilename(TestCase):
 	ret = driver._reference_path_from_filename('some/file/name.txt')
 
 	self.assertEqual(os.path.join.return_value, ret)
+
 
 class TestEnsureFilenameReference(TestCase):
     def setUp(self):

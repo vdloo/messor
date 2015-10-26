@@ -21,8 +21,8 @@ def process_file(file_entry, remote_driver):
 def flush_buffer():
     hosts = list_buffer_hosts()
     zipped_lists = zip(*chain(*map(reference_driver.file_index_for_host, hosts)))
-    checksums = zipped_lists[1] if zipped_lists else []
-    reference_driver.purge_buffer(checksums)
+    unresolved_checksums = zipped_lists[1] if zipped_lists else []
+    reference_driver.purge_buffer(unresolved_checksums)
 
 def sync_to_inbox(host, remote_driver):
     logger.debug("Syncing host %s to inbox" % host)

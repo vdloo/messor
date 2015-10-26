@@ -1,5 +1,7 @@
 import os 
 
+LIMIT_IN_BYTES = 500 * 1024 * 1024
+
 MESSOR_PATH = '~/messor'
 MESSOR_PATH = os.path.expanduser(MESSOR_PATH)
 

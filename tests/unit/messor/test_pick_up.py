@@ -4,9 +4,10 @@ from mock import patch, call, Mock
 from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
     build_file_index, process_file, create_host_buffer, \
-    sync_outbox_host_to_buffer, process_host, list_all_files_for_outbox_host
+    sync_outbox_host_to_buffer, process_host, list_all_files_for_outbox_host, \
+    handle_file
 
-class TestProcessFile(TestCase):
+class TesHandleFile(TestCase):
     def setUp(self):
 	patcher = patch('messor.pick_up.os')
 	self.addCleanup(patcher.stop)
@@ -22,21 +23,50 @@ class TestProcessFile(TestCase):
 
 	self.file_entry = ('/some/absolute/file/path.txt', 'achecksum')
         self.remote_driver = Mock()
+	self.remote_driver.file_size.return_value = 1
 
-    def test_process_file_ensures_file_in_buffer(self):
-	process_file(self.file_entry, self.remote_driver)
+    def test_handle_file_ensures_file_in_buffer(self):
+	handle_file(self.file_entry, self.remote_driver)
 
 	self.ensure_file_in_buffer.assert_called_once_with(self.file_entry[0], self.file_entry[1], self.remote_driver)
 
-    def test_process_file_ensures_filename_reference(self):
-	process_file(self.file_entry, self.remote_driver)
+    def test_handle_file_ensures_filename_reference(self):
+	handle_file(self.file_entry, self.remote_driver)
 
 	self.ensure_reference.assert_called_once_with(*self.file_entry)
 
-    def test_process_file_removes_synced_file(self):
-	process_file(self.file_entry, self.remote_driver)
+    def test_handle_file_removes_synced_file(self):
+	handle_file(self.file_entry, self.remote_driver)
 
         self.remote_driver.remove_file.assert_called_once_with(self.file_entry[0])
+
+
+class TestProcessFile(TestCase):
+    def setUp(self):
+	patcher = patch('messor.pick_up.ChecksumFilesDriver.file_fits_in_buffer')
+	self.addCleanup(patcher.stop)
+	self.file_fits_in_buffer = patcher.start()
+        self.file_fits_in_buffer.return_value = True
+
+	patcher = patch('messor.pick_up.handle_file')
+	self.addCleanup(patcher.stop)
+	self.handle_file = patcher.start()
+
+	self.file_entry = ('/some/absolute/file/path.txt', 'achecksum')
+        self.remote_driver = Mock()
+
+    def test_process_file_handles_file_if_filts_in_buffer(self):
+	process_file(self.file_entry, self.remote_driver)
+
+        self.handle_file.assert_called_once_with(self.file_entry, self.remote_driver)
+
+    def test_process_file_doesnt_handle_file_if_doesnt_fit_in_buffer(self):
+        self.file_fits_in_buffer.return_value = False
+
+	process_file(self.file_entry, self.remote_driver)
+
+        self.assertEqual(0, len(self.handle_file.mock_calls))
+
 
 class TestBuildFileIndex(TestCase):
     def setUp(self):

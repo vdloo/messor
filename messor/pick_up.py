@@ -10,12 +10,18 @@ logger = logging.getLogger(__name__)
 
 reference_driver = ChecksumFilesDriver()
 
-def process_file(file_entry, remote_driver):
+def handle_file(file_entry, remote_driver):
     filename, checksum = file_entry
     logger.debug("Processing file %s" % filename)
     reference_driver.ensure_file_in_buffer(filename, checksum, remote_driver)
     reference_driver.ensure_filename_reference(filename, checksum)
     remote_driver.remove_file(filename)
+
+def process_file(file_entry, remote_driver):
+    if reference_driver.file_fits_in_buffer(file_entry, remote_driver):
+        handle_file(file_entry, remote_driver)
+    else:
+        logger.debug("File doesn't fit (anymore), skipping: %s" % file_entry[0])
 
 def build_file_index(files, remote_driver):
     logger.debug("Building file index")
