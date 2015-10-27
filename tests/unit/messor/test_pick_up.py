@@ -5,7 +5,7 @@ from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
     build_file_index, process_file, create_host_buffer, \
     sync_outbox_host_to_buffer, process_host, list_all_files_for_outbox_host, \
-    handle_file
+    handle_file, OutOfSpaceError, process_all_files, process_file_group
 
 class TesHandleFile(TestCase):
     def setUp(self):
@@ -63,9 +63,8 @@ class TestProcessFile(TestCase):
     def test_process_file_doesnt_handle_file_if_doesnt_fit_in_buffer(self):
         self.file_fits_in_buffer.return_value = False
 
-	process_file(self.file_entry, self.remote_driver)
-
-        self.assertEqual(0, len(self.handle_file.mock_calls))
+	with self.assertRaises(OutOfSpaceError):
+	    process_file(self.file_entry, self.remote_driver)
 
 
 class TestBuildFileIndex(TestCase):
@@ -119,6 +118,72 @@ class TestCreateHostBuffer(TestCase):
 
         self.ensure.assert_called_once_with(self.mock_os.path.join.return_value)
 
+class TestProcessFileGroup(TestCase):
+    def setUp(self):
+	self.files = Mock()
+	self.remote_driver = Mock()
+
+	patcher = patch('messor.pick_up.build_file_index')
+	self.addCleanup(patcher.stop)
+	self.build_file_index = patcher.start()
+	self.file_entries = [Mock(), Mock(), Mock(), Mock(), Mock()]
+	self.build_file_index.return_value = self.file_entries
+
+	patcher = patch('messor.pick_up.process_file')
+	self.addCleanup(patcher.stop)
+	self.process_file = patcher.start()
+
+    def test_process_file_group_builds_file_index(self):
+	process_file_group(self.files, self.remote_driver)
+
+	self.build_file_index.assert_called_once_with(self.files, self.remote_driver)
+
+    def test_process_file_group_processes_all_file_entries(self):
+	process_file_group(self.files, self.remote_driver)
+
+	expected_calls = [
+	    call(self.file_entries[0], self.remote_driver),
+	    call(self.file_entries[1], self.remote_driver),
+	    call(self.file_entries[2], self.remote_driver),
+	    call(self.file_entries[3], self.remote_driver),
+	    call(self.file_entries[4], self.remote_driver)
+	]
+	self.assertEqual(expected_calls, self.process_file.mock_calls)
+
+
+class TestProcessAllFiles(TestCase):
+    def setUp(self):
+        self.files = [1, 2, 3, 4, 5]
+        self.remote_driver = Mock()
+
+	patcher = patch('messor.pick_up.group_n_elements')
+	self.addCleanup(patcher.stop)
+	self.group_n_elements = patcher.start()
+        self.group_n_elements.return_value = self.files
+
+	patcher = patch('messor.pick_up.process_file_group')
+	self.addCleanup(patcher.stop)
+	self.process_file_group = patcher.start()
+
+    def test_process_all_files_groups_n_elements(self):
+        process_all_files(self.files, self.remote_driver)
+
+        self.group_n_elements.assert_called_once_with(self.files, 20)
+
+    def test_process_all_files_processess_all_files_group(self):
+        groups = [[1, 2], [3, 4], [5, 6]]
+        self.group_n_elements.return_value = groups
+
+        process_all_files(self.files, self.remote_driver)
+
+        expected_calls = [
+	    call(groups[0], self.remote_driver),
+	    call(groups[1], self.remote_driver),
+	    call(groups[2], self.remote_driver)
+        ]
+        self.assertEqual(expected_calls, self.process_file_group.mock_calls)
+
+
 class TestSyncOutboxHostToBuffer(TestCase):
     def setUp(self):
 	patcher = patch('messor.pick_up.process_file')
@@ -136,6 +201,7 @@ class TestSyncOutboxHostToBuffer(TestCase):
 	patcher = patch('messor.pick_up.list_all_files_for_outbox_host')
 	self.addCleanup(patcher.stop)
 	self.list_all_files_for_host = patcher.start()
+	self.list_all_files_for_host.return_value = [1, 2, 3, 4, 5]
 
         self.remote_driver = Mock()
 

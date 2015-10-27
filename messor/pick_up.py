@@ -2,13 +2,17 @@ import os
 import logging
 
 from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
-from messor.utils import ensure_directory
+from messor.utils import ensure_directory, group_n_elements
 from messor.drivers.reference import ChecksumFilesDriver
 from messor.drivers.remote import SshDriver
 
 logger = logging.getLogger(__name__)
 
 reference_driver = ChecksumFilesDriver()
+
+class OutOfSpaceError(RuntimeError):
+    pass
+
 
 def handle_file(file_entry, remote_driver):
     filename, checksum = file_entry
@@ -22,6 +26,7 @@ def process_file(file_entry, remote_driver):
         handle_file(file_entry, remote_driver)
     else:
         logger.debug("File doesn't fit (anymore), skipping: %s" % file_entry[0])
+        raise OutOfSpaceError("Buffer too full to process the next file for this host")
 
 def build_file_index(files, remote_driver):
     logger.debug("Building file index")
@@ -43,12 +48,24 @@ def list_outbox_hosts(remote_driver):
     outbox_path = MESSOR_PATH + '/outbox/'
     return remote_driver.list_directories(outbox_path)
 
+def process_file_group(files, remote_driver):
+    file_entries = build_file_index(files, remote_driver)
+    map(lambda file_entry: process_file(file_entry, remote_driver), file_entries)
+
+def process_all_files(files, remote_driver):
+    groups = group_n_elements(files, 20)
+    map(lambda file_group: process_file_group(file_group, remote_driver), groups)
+
 def sync_outbox_host_to_buffer(outbox_host, remote_driver):
     logger.debug("Syncing host %s to buffer" % outbox_host)
     files = list_all_files_for_outbox_host(outbox_host, remote_driver)
-    file_entries = build_file_index(files, remote_driver)
     create_host_buffer(outbox_host)
-    map(lambda file_entry: process_file(file_entry, remote_driver), file_entries)
+
+    try:
+        process_all_files(files, remote_driver)
+    except OutOfSpaceError:
+        logger.debug("Can't fit anything else from host %s" % outbox_host)
+    logger.debug("Done syncing host %s" % outbox_host)
 
 def sync_to_buffer(host, remote_driver):
     outbox_hosts = list_outbox_hosts(remote_driver)
