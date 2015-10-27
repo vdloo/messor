@@ -1,5 +1,6 @@
 from unittest import TestCase
 from mock import patch, call, Mock
+from types import GeneratorType
 
 from messor.settings import MESSOR_BUFFER
 from messor.drop_off import drop_off, list_buffer_hosts, sync_to_inbox, \
@@ -15,6 +16,10 @@ class TestProcessFile(TestCase):
         self.addCleanup(patcher.stop)
         self.mock_os = patcher.start()
         self.mock_os.path.join.return_value = 'hosts_path'
+
+        patcher = patch('messor.drop_off.flush_buffer')
+        self.addCleanup(patcher.stop)
+        self.flush_buffer = patcher.start()
 
         self.conn = Mock()
 
@@ -32,6 +37,11 @@ class TestProcessFile(TestCase):
         process_file(('filename', 'checksum'), self.conn)
 
         self.mock_os.remove.assert_called_once_with('hosts_path' + 'filename')
+
+    def test_process_file_flushes_inbox(self):
+        process_file(('filename', 'checksum'), self.conn)
+
+        self.flush_buffer.assert_called_once_with()
 
 
 class TestFlushBuffer(TestCase):
@@ -86,10 +96,6 @@ class TestSyncToInbox(TestCase):
         self.addCleanup(patcher.stop)
         self.process_file = patcher.start()
 
-        patcher = patch('messor.drop_off.flush_buffer')
-        self.addCleanup(patcher.stop)
-        self.flush_buffer = patcher.start()
-
         self.conn = Mock()
 
     def test_sync_to_inbox_gets_file_index_for_host(self):
@@ -107,10 +113,20 @@ class TestSyncToInbox(TestCase):
         ]
         self.assertEqual(expected_calls, self.process_file.mock_calls)
 
-    def test_sync_to_inbox_flushes_buffer(self):
+    def test_sync_to_inbox_instantiates_threadpool(self):
+        patcher = patch('messor.drop_off.ThreadPoolExecutor')
+        self.addCleanup(patcher.stop)
+        self.threadpool = patcher.start()
+
         sync_to_inbox('host1', self.conn)
 
-        self.flush_buffer.assert_called_once_with()
+        self.threadpool.assert_called_once_with(max_workers=16)
+
+    def test_sync_to_inbox_waits_for_threads_to_finish(self):
+        ret = sync_to_inbox('host1', self.conn)
+
+        self.assertIsInstance(ret, list)
+        self.assertNotIsInstance(ret, GeneratorType)
 
 
 class TestListBufferHosts(TestCase):
@@ -170,6 +186,10 @@ class TestProcessHost(TestCase):
 
 class TestDropOff(TestCase):
     def setUp(self):
+        patcher = patch('messor.drop_off.flush_buffer')
+        self.addCleanup(patcher.stop)
+        self.flush_buffer = patcher.start()
+
         patcher = patch('messor.drop_off.list_buffer_hosts')
         self.addCleanup(patcher.stop)
         self.list_buffer_hosts = patcher.start()
@@ -179,6 +199,11 @@ class TestDropOff(TestCase):
         patcher = patch('messor.drop_off.process_host')
         self.addCleanup(patcher.stop)
         self.process_host = patcher.start()
+
+    def test_drop_off_flushes_buffer(self):
+        drop_off()
+
+        self.flush_buffer.assert_called_once_with()
 
     def test_drop_off_lists_buffer_hosts(self):
         drop_off()

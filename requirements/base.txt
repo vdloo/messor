@@ -1,1 +1,4 @@
+rpyc==3.3.0
+plumbum==1.5.0
+futures==3.0.3
 -e .

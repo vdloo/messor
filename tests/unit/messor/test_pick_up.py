@@ -1,5 +1,6 @@
 from unittest import TestCase
 from mock import patch, call, Mock
+from types import GeneratorType
 
 from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.pick_up import pick_up, list_outbox_hosts, sync_to_buffer, \
@@ -150,6 +151,21 @@ class TestProcessFileGroup(TestCase):
 	    call(self.file_entries[4], self.remote_driver)
 	]
 	self.assertEqual(expected_calls, self.process_file.mock_calls)
+
+    def test_process_file_group_instantiates_threadpool(self):
+        patcher = patch('messor.pick_up.ThreadPoolExecutor')
+        self.addCleanup(patcher.stop)
+        self.threadpool = patcher.start()
+
+	process_file_group(self.files, self.remote_driver)
+
+	self.threadpool.assert_called_once_with(max_workers=16)
+
+    def test_process_file_group_waits_for_threads_to_finish(self):
+	ret = process_file_group(self.files, self.remote_driver)
+
+        self.assertIsInstance(ret, list)
+        self.assertNotIsInstance(ret, GeneratorType)
 
 
 class TestProcessAllFiles(TestCase):

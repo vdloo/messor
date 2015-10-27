@@ -1,5 +1,6 @@
 import os 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 
 from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.utils import ensure_directory, group_n_elements
@@ -50,7 +51,8 @@ def list_outbox_hosts(remote_driver):
 def process_file_group(files, remote_driver):
     file_entries = build_file_index(files, remote_driver)
     sorted_file_entries = remote_driver.sort_file_entries_by_size(file_entries)
-    map(lambda file_entry: process_file(file_entry, remote_driver), sorted_file_entries)
+    executor = ThreadPoolExecutor(max_workers=16)
+    return list(executor.map(lambda file_entry: process_file(file_entry, remote_driver), sorted_file_entries))
 
 def process_all_files(files, remote_driver):
     groups = group_n_elements(files, 20)

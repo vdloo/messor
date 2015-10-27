@@ -3,4 +3,5 @@ build/
 *.egg-info/
 *.swp
 *.swo
+*.swn
 *.pyc
