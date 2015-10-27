@@ -50,7 +50,8 @@ def list_outbox_hosts(remote_driver):
 
 def process_file_group(files, remote_driver):
     file_entries = build_file_index(files, remote_driver)
-    map(lambda file_entry: process_file(file_entry, remote_driver), file_entries)
+    sorted_file_entries = remote_driver.sort_files_by_size(file_entries)
+    map(lambda file_entry: process_file(file_entry, remote_driver), sorted_file_entries)
 
 def process_all_files(files, remote_driver):
     groups = group_n_elements(files, 20)
