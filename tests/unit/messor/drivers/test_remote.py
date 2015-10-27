@@ -24,6 +24,10 @@ class TestSshDriver(TestCase):
 	self.addCleanup(patcher.stop)
 	self.list_all_files = patcher.start()
 
+        patcher = patch('messor.drivers.remote.list_all_files')
+	self.addCleanup(patcher.stop)
+	self.list_all_files = patcher.start()
+
 	self.driver = SshDriver('testhost')
 
     def test_ssh_driver_init_creates_plumbum_connection(self):
@@ -86,3 +90,22 @@ class TestSshDriver(TestCase):
 	ret = self.driver.file_size('filename')
 
 	self.assertEqual(ret, self.driver.rpyc_conn.modules.os.path.getsize.return_value)
+
+    def test_ssh_driver_sort_file_entries_by_size_sorts_file_entries_by_size(self):
+        self.driver.file_size = Mock()
+	file_entries = [
+	    ('file1', 'checksum1'),
+	    ('file2', 'checksum2'),
+	    ('file3', 'checksum3'),
+	]
+        self.driver.file_size.side_effect = [2, 3, 1]
+
+	ret = self.driver.sort_file_entries_by_size(file_entries)
+
+	expected_sorted_file_entries = [
+	    ('file3', 'checksum3'),
+	    ('file1', 'checksum1'),
+	    ('file2', 'checksum2'),
+	]
+	self.assertEqual(expected_sorted_file_entries, ret)
+

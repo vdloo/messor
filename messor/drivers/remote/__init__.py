@@ -46,3 +46,6 @@ class SshDriver(object):
 
     def file_size(self, filename):
 	return self.rpyc_conn.modules.os.path.getsize(filename)
+
+    def sort_file_entries_by_size(self, file_entries):
+	return sorted(file_entries, key=lambda file_entry: self.file_size(file_entry[0]))

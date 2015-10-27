@@ -4,7 +4,7 @@ from mock import call, patch, Mock, MagicMock
 from messor.utils import ensure_directory, ensure_directories, \
     calculate_checksum, list_directories, list_all_files, \
     stitch_directory_and_files, flatten_list, _calculate_checksum, \
-    path_size
+    path_size, group_n_elements
 
 class TestFlattenList(TestCase):
     def test_flatten_list_flattens_list(self):
@@ -260,3 +260,18 @@ class TestPathSize(TestCase):
 
         ret = path_size('somepath')
         self.assertEqual(ret, 5)
+
+
+class TestGroupNElements(TestCase):
+    def setUp(self):
+    	self.testlist = [1, 2, 3, 4, 5, 6]
+
+    def test_group_n_elements_groups_n_elements(self):
+        ret = group_n_elements(self.testlist, 3)
+
+	self.assertEqual(ret, [[1, 2, 3], [4, 5, 6]])
+
+    def test_group_n_elements_also_groups_leftovers(self):
+        ret = group_n_elements(self.testlist, 4)
+
+	self.assertEqual(ret, [[1, 2, 3, 4], [5, 6]])

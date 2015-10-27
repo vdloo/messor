@@ -51,3 +51,10 @@ def path_size(path):
         sub_paths = map(lambda item: os.path.join(path, item), os.listdir(path))
         size += sum(map(path_size, sub_paths))
     return size
+
+def group_n_elements(elements, n=1):
+    groups = map(list, zip(*[iter(elements)]*n))
+    left = len(elements) % n if n else False
+    if left:
+        groups.append(elements[-left:])
+    return groups
