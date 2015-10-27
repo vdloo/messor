@@ -128,6 +128,7 @@ class TestProcessFileGroup(TestCase):
 	self.build_file_index = patcher.start()
 	self.file_entries = [Mock(), Mock(), Mock(), Mock(), Mock()]
 	self.build_file_index.return_value = self.file_entries
+        self.remote_driver.sort_file_entries_by_size.return_value = self.file_entries
 
 	patcher = patch('messor.pick_up.process_file')
 	self.addCleanup(patcher.stop)
@@ -204,6 +205,7 @@ class TestSyncOutboxHostToBuffer(TestCase):
 	self.list_all_files_for_host.return_value = [1, 2, 3, 4, 5]
 
         self.remote_driver = Mock()
+        self.remote_driver.sort_file_entries_by_size.return_value = [1,2, 3, 4, 5]
 
     def test_sync_outbox_host_to_buffer_lists_all_files_for_host(self):
         sync_outbox_host_to_buffer('testhost', self.remote_driver)
@@ -222,6 +224,7 @@ class TestSyncOutboxHostToBuffer(TestCase):
 
     def test_sync_outbox_host_to_buffer_processes_all_files_for_host(self):
 	self.build_file_index.return_value = ['file1.txt', 'file2.txt', 'file3.txt']
+        self.remote_driver.sort_file_entries_by_size.return_value = self.build_file_index.return_value
 
         sync_outbox_host_to_buffer('testhost', self.remote_driver)
 
