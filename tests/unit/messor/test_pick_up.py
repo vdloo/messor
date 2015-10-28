@@ -318,6 +318,15 @@ class TestPickup(TestCase):
 	self.addCleanup(patcher.stop)
 	self.process_host = patcher.start()
 
+	patcher = patch('messor.pick_up.flush_buffer')
+	self.addCleanup(patcher.stop)
+	self.flush_buffer = patcher.start()
+
+    def test_pick_up_flushes_buffer_before_syncing(self):
+        pick_up()
+
+	self.flush_buffer.assert_called_once_with()
+
     def test_pick_up_processes_all_hosts(self):
 	list_outbox_hosts.return_value = ['host1', 'host2', 'localhost']
 

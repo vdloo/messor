@@ -6,6 +6,7 @@ from messor.settings import MESSOR_PATH, MESSOR_BUFFER, PICKUP_HOSTS
 from messor.utils import ensure_directory, group_n_elements
 from messor.drivers.reference import ChecksumFilesDriver
 from messor.drivers.remote import SshDriver
+from messor.buffer import flush_buffer
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,7 @@ def process_host(host):
         logger.debug("Host %s not in range (anymore), skipping!" % host)
 
 def pick_up():
+    flush_buffer()
     logger.debug("Initiating pickup")
     map(process_host, PICKUP_HOSTS)
     logger.debug("Done syncing all outbox host directories to buffer")
