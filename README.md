@@ -1,14 +1,14 @@
-![License](https://img.shields.io/github/license/vdloo/messor.svg)
-
-
 messor
 ===========
 
-Sneakernet filesync. Use mobile devices to transfer data from one host to the other.
+Sneakernet filesync. Use mobile devices to transfer data from one host to the other.  
+
+&nbsp;  
 
 <p align="center">
-  <img src="https://github.com/vdloo/messor/docs/animation/assets/messor.gif?raw=true" alt="animated example"/>
+  <img src="https://raw.githubusercontent.com/vdloo/messor/master/docs/animation/assets/messor.gif" alt="animated example"/>
 </p>
+
 
 
 How does it work?
