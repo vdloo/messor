@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -e
 
 function clear_pyc {
     find . -type f -name *.pyc -delete
