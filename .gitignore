@@ -1,5 +1,5 @@
-dist/
-build/
+messor/dist/
+messor/build/
 *.egg-info/
 *.swp
 *.swo
